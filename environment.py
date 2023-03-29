@@ -4,10 +4,11 @@ import pygame
 import sys
 import os
 import datetime
-import tensorflow
 from utils import normalization
 from keras.datasets import mnist
 import keras
+import csv
+from skimage.metrics import structural_similarity as ssim
 
 from agent import Agent
 
@@ -27,19 +28,28 @@ def generate_image(truth, measurement, prediction, logdir, dim=(1,3), figsize=(1
 
 
 def accuracy(truth, prediction):
-    return -np.sum(np.power(truth-prediction, 2))#np.mean(truth == prediction)
+    mse_score = np.mean(np.power(truth-prediction, 2))
+    psnr_score = 20 * np.log10(np.max(truth) / np.sqrt(mse_score))
+    ssim_score = ssim(truth, prediction, data_range=truth.max() - truth.min())
+
+    return mse_score, psnr_score, ssim_score
 
 
-def main(steps, visualise, model_path='removed'):
+def main(steps, visualise, model='none', log_dir=None):
     # Create the environment
     (data_x, _), _ = mnist.load_data()
-    data_x = np.reshape(np.asarray(data_x), [60000, 28*28]).astype(float)
-    norm_data, norm_parameters = normalization(data_x)
+    data_x = np.reshape(np.asarray(data_x), [60000, 784]).astype(float)
+    norm_data, _ = normalization(data_x)
     norm_data_x = np.nan_to_num(norm_data, 0)
-    env = norm_data_x[0]
+    data_index = 0
+    env = norm_data_x[data_index]
     print(np.max(env), np.min(env))
 
-    generator = keras.models.load_model("models/no-mask/encoder.h5")
+    if model == "none":
+        generator = None
+    else:
+        path = os.path.join(os.getcwd(), "models", model, "encoder.h5")
+        generator = keras.models.load_model(path)
 
     # Create agent
     agent = Agent((14, 14), (28, 28))
@@ -63,11 +73,18 @@ def main(steps, visualise, model_path='removed'):
             m_mb = agent.get_mask().reshape(1, 28, 28, 1)
 
             # Get the prediction
-            prediction = np.array(generator([x_mb]))
+            if generator is None:
+                prediction = x_mb
+            else:
+                prediction = np.array(generator([x_mb, m_mb]))
             prediction = m_mb * x_mb + (1-m_mb) * prediction
-            acc = accuracy(env, prediction)
-            print("Prediction Accuracy: ", acc)
-
+            
+            mse_score, psnr_score, ssim_score = accuracy(env.reshape(784), prediction.reshape(784))
+            
+            print("\nStep: ", step)
+            print("MSE: ", mse_score)
+            print("PSNR: ", psnr_score)
+            print("SSIM: ", ssim_score)
             
             env_square = env_square.T
             x_mb = x_mb.reshape(28, 28).T
@@ -75,7 +92,6 @@ def main(steps, visualise, model_path='removed'):
             prediction = prediction.reshape(28, 28).T
 
             clock.tick(60)
-            print("Step: ", step)
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
@@ -125,16 +141,20 @@ def main(steps, visualise, model_path='removed'):
             pygame.display.update()
     else:
         # Run the agent in the environment
-        accuracies = []
+        mse_scores = []
+        psnr_scores = []
+        ssim_scores = []
         percentages_explored = []
 
         # Create new log directory
-        log_dir = "logs/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S") + "/"
-        os.makedirs(log_dir)
+        if log_dir is None:
+            log_dir = "logs/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S") + "/"
+            os.makedirs(log_dir)
 
         # Create summary writer
         acc, exp = list(), list()
 
+        # Run the agent in the environment
         for step in range(steps):
             pos = agent.get_position()
 
@@ -142,47 +162,68 @@ def main(steps, visualise, model_path='removed'):
             measurements = env_square[pos[0]-1:pos[0]+2, pos[1]-1:pos[1]+2]
 
             agent.measure(measurements)
-            raw_x_mb = agent.get_map()
-            x_mb = np.nan_to_num(np.copy(raw_x_mb), 0)
-            m_mb = agent.get_mask()
+            x_mb = agent.get_map().reshape(1, 28, 28, 1)
+            x_mb = np.nan_to_num(x_mb, 0)
+            m_mb = agent.get_mask().reshape(1, 28, 28, 1)
 
             # Get the prediction
-            prediction = generator.predict(x_mb)
+            if generator is None:
+                prediction = x_mb 
+            else:
+                if model is None or model == 'no-mask':
+                    prediction = np.array(generator([x_mb]))
+                else:
+                    prediction = np.array(generator([x_mb, m_mb]))
             prediction = m_mb * x_mb + (1-m_mb) * prediction
-            acc = accuracy(env, prediction)
-            #print("Prediction Accuracy: ", acc)
 
-            accuracies.append(acc)
-            percentage_explored = np.count_nonzero(~np.isnan(raw_x_mb)) / 784
+            mse_score, psnr_score, ssim_score = accuracy(env.reshape(784), prediction.reshape(784))
+            mse_scores.append(mse_score)
+            psnr_scores.append(psnr_score)
+            ssim_scores.append(ssim_score)
+            percentage_explored = np.sum(m_mb.reshape(784)) / 784
             percentages_explored.append(percentage_explored)
 
-        print("Prediction Accuracy: ", accuracy(env, prediction))
+        print("Prediction Accuracy: {} {} {}".format(mse_score, psnr_score, ssim_score))
         generate_image(env, m_mb, prediction, log_dir)
+
+        # Save to csv
+        with open(log_dir + "/accuracies.csv", "w") as f:
+            writer = csv.writer(f)
+            writer.writerows([["Data Index", data_index],
+                              ["Network", model],
+                              ["MSE"] + mse_scores,
+                              ["PSNR"] + psnr_scores,
+                              ["SSIM"] + ssim_scores,
+                              ["Percentage Explored"] + percentages_explored,
+                              ])
 
         # Save the accuracies and percentages explored on same figure
         plt.figure(figsize=(10, 5))
         plt.subplot(1, 2, 1)
-        plt.plot(accuracies)
-        plt.legend()
+        plt.plot(mse_scores)
         plt.xlabel("Steps")
         plt.ylabel("Accuracy")
         plt.title("Accuracy")
-        plt.ylim(np.min(accuracies), 0)
 
         plt.subplot(1, 2, 2)
         plt.plot(percentages_explored, color="green")
-        plt.legend()
         plt.xlabel("Steps")
         plt.ylabel("Percentage Explored")
         plt.title("Percentage Explored")
         plt.ylim(0, 1)
 
         plt.tight_layout()
-        plt.savefig(log_dir + "accuracies.png")
+        plt.savefig(log_dir + "/accuracies.png")
         plt.close('all')
 
 if __name__ == "__main__":
     visualise = False
+    output_dir = None
+    model = None
     if len(sys.argv) > 1:
         visualise = sys.argv[1] == "visualise"
-    main(1000, visualise)
+    if len(sys.argv) > 2:
+        model = sys.argv[2]
+    if len(sys.argv) > 3:
+        output_dir = sys.argv[3]
+    main(1000, visualise, model, output_dir)

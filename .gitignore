@@ -2,3 +2,7 @@ images/
 __pycache__/
 models/
 logs/
+out/
+old/
+*.csv
+*.png

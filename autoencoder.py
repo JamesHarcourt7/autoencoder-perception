@@ -56,7 +56,7 @@ def create_encoder():
     c = Concatenate()([x, m])
 
     c = Dense(64, activation='relu')(c)
-    c = Dense(20, activation='relu')(c) # Compress to 20 features, to learn the important features -> increase if you want to learn more features
+    c = Dense(40, activation='relu')(c) # Compress to 40 features, to learn the important features -> increase if you want to learn more features (more sharpness)
     c = Dense(49, activation='relu')(c)
     c = Reshape((7, 7, 1))(c)
     c = Conv2DTranspose(32, kernel_size=4, padding='same', activation='relu')(c)
