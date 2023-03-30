@@ -151,9 +151,6 @@ def main(steps, visualise, model='none', log_dir=None):
             log_dir = "logs/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S") + "/"
             os.makedirs(log_dir)
 
-        # Create summary writer
-        acc, exp = list(), list()
-
         # Run the agent in the environment
         for step in range(steps):
             pos = agent.get_position()
