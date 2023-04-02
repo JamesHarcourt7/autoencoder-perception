@@ -2,7 +2,7 @@ import csv
 import matplotlib.pyplot as plt
 import numpy as np
 
-model_lables = {"none": "Baseline", "no-mask": "No Mask", "mask": "Mask", "dims": "40 Hidden Dimensions"}
+model_lables = {"none": "Baseline", "split": "Split Training", "nosplit": "Normal Training", "dims": "40 Hidden Dimensions"}
 
 
 class Entry:
@@ -70,7 +70,7 @@ max_psnr = np.max(np.array([list(entry.agents_psnr.values()) for entry in entrie
 min_psnr = np.min(np.array([list(entry.agents_psnr.values()) for entry in entries]))
 max_ssim = np.max(np.array([list(entry.agents_ssim.values()) for entry in entries]))
 min_ssim = np.min(np.array([list(entry.agents_ssim.values()) for entry in entries]))
-max_overhead = np.max(np.cumsum(np.mean([entry.overhead for entry in entries], axis=0)))
+max_overhead = np.cumsum(np.mean([entry.overhead for entry in entries if entry.model == "none"], axis=0))[-1]
 min_overhead = 0
 
 # Group entries by digit
@@ -212,14 +212,13 @@ for digit in models:
         
         plt.savefig("digit_" + str(digit) + "_" + model + ".png")
 
-'''
+
 # plot the mean and std dev of the accuracies and explorations for each digit
 for digit in models:
-    plt.figure(figsize=(20, 5))
+    plt.figure(figsize=(25, 5))
 
-    plt.subplot(1, 4, 1)
+    plt.subplot(1, 5, 1)
     for model in models[digit]:
-        #model_mean_accuracies = np.mean([entry.accuracies for entry in models[digit][model]], axis=0)
         model_mean_mse = np.mean([entry.mse for entry in models[digit][model]], axis=0)
         model_std_dev_mse = np.std([entry.mse for entry in models[digit][model]], axis=0)
 
@@ -232,7 +231,7 @@ for digit in models:
     plt.title("Comparison of MSE")
     plt.ylim(min_mse, max_mse)
 
-    plt.subplot(1, 4, 2)
+    plt.subplot(1, 5, 2)
     for model in models[digit]:
         model_mean_psnr = np.mean([entry.psnr for entry in models[digit][model]], axis=0)
         model_std_dev_psnr = np.std([entry.psnr for entry in models[digit][model]], axis=0)
@@ -246,7 +245,7 @@ for digit in models:
     plt.title("Comparison of PSNR")
     plt.ylim(min_psnr, max_psnr)
 
-    plt.subplot(1, 4, 3)
+    plt.subplot(1, 5, 3)
     for model in models[digit]:
         model_mean_ssim = np.mean([entry.ssim for entry in models[digit][model]], axis=0)
         model_std_dev_ssim = np.std([entry.ssim for entry in models[digit][model]], axis=0)
@@ -260,7 +259,7 @@ for digit in models:
     plt.title("Comparison of SSIM")
     plt.ylim(min_ssim, max_ssim)
 
-    plt.subplot(1, 4, 4)
+    plt.subplot(1, 5, 4)
     for model in models[digit]:
         model_mean_explorations = np.mean([entry.explorations for entry in models[digit][model]], axis=0)
         model_std_dev_explorations = np.std([entry.explorations for entry in models[digit][model]], axis=0)
@@ -274,5 +273,19 @@ for digit in models:
     plt.title("Percentage Explored")
     plt.ylim(0, 1)
 
+    plt.subplot(1, 5, 5)
+    for model in models[digit]:
+        model_mean_overheads = np.mean([entry.overhead for entry in models[digit][model]], axis=0)
+        model_std_dev_overheads = np.std([entry.overhead for entry in models[digit][model]], axis=0)
+
+        plt.plot(model_mean_overheads, label=model_lables[model])
+        plt.fill_between(np.arange(len(model_mean_overheads)), model_mean_overheads - model_std_dev_overheads, model_mean_overheads + model_std_dev_overheads, alpha=0.5)
+    
+    plt.legend(loc='upper left')
+    plt.xlabel("Steps")
+    plt.ylabel("Communication Overhead")
+    plt.title("Cumulative Communication Overhead")
+    plt.ylim(min_overhead, max_overhead)
+
     plt.savefig("digit_" + str(digit) + "_all.png")
-'''
+

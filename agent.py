@@ -13,6 +13,9 @@ class Agent:
         self.map[:] = np.nan
 
         self.messages = MessageQueue()
+        self.vector = None
+
+        self.vectors = dict()
     
     def random_walk(self):
         if (random.uniform(0, 1) < 0.7):
@@ -50,24 +53,28 @@ class Agent:
 
     def get_generator(self):
         return self.generator
-    
-    def receive_observation(self, x_mb, m_mb):
-        self.messages.add_message((x_mb, m_mb))
 
-    def get_observation(self):
+    def get_message(self):
         return self.messages.get_message()
     
-    def has_observations(self):
+    def has_messages(self):
         return self.messages.get_size() > 0
+
+    def set_vector(self, vector):
+        self.vector = vector
+
+    def receive_vector(self, vector, agent):
+        self.messages.add_message((vector, agent))
     
-    def fill_in(self, x_mb, m_mb):
-        x_mb = x_mb.reshape(28, 28)
-        m_mb = m_mb.reshape(28, 28)
+    def get_vector(self):
+        return self.vector
 
-        m_mb = m_mb - (m_mb * self.mask)
-        self.mask = self.mask + m_mb
-        self.map = self.map + (x_mb * m_mb)
-
+    def add_vector(self, vector, agent):
+        self.vectors[agent] = vector
+    
+    def get_average_vector(self):
+        vectors = list(self.vectors.values()) + [self.vector]
+        return np.mean(np.array(vectors), axis=0)
     
 
 class MessageQueue:

@@ -24,6 +24,9 @@ What do we want to show here?
 - Graphical interaction between agents + direction of interaction (who is sending data to who)
 - Record size of data sent between agents over time - cumulative frequency distribution
 
+- What happens when we increase the number of agents?
+- What happens when we increase the communication radius?
+
 '''
 
 agent_colours = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 0), (255, 0, 255), (0, 255, 255), (255, 255, 255)]
@@ -53,11 +56,13 @@ def main(steps, visualise, n_agents=2, model="none", log_dir=None):
 
     print("MODEL: ", model, "")
     if model == "none":
-        generator = None
+        encoder = None
+        decoder = None
     else:
-        print(os.getcwd())
-        path = os.path.join(os.getcwd(), "models", model, "encoder.h5")
-        generator = keras.models.load_model(path)
+        path = os.path.join(os.getcwd(), "models2", model, "encoder.h5")
+        encoder = keras.models.load_model(path)
+        path = os.path.join(os.getcwd(), "models2", model, "decoder.h5")
+        decoder = keras.models.load_model(path)
 
     # Create agents in random positions
     size = 28
@@ -99,24 +104,32 @@ def main(steps, visualise, n_agents=2, model="none", log_dir=None):
                 m_mb = agent.get_mask().reshape(1, 28, 28, 1)
 
                 # Share obvervations with other agents
+                if encoder is None:
+                    vector = x_mb.reshape(784)
+                    agent.set_vector(vector)
+                else:
+                    vector = np.array(encoder([x_mb, m_mb]))
+                    agent.set_vector(vector)
+
                 for j in range(n_agents):
                     if i != j:
                         distance = np.linalg.norm(np.array(pos) - np.array(agents[j].get_position()))
                         if distance <= communication_radius:
-                            agents[j].receive_observation(x_mb, m_mb)
+                            agents[j].receive_vector(vector, j)
                             communications.append((i, j))
 
-                # Check recieved observations from other agents
-                while agent.has_observations():
-                    obs = agent.get_observation()
-                    # Fill in the gaps
-                    agent.fill_in(obs[0], obs[1])
+                # Check recieved vectors from other agents
+                while agent.has_messages():
+                    vec, j = agent.get_message()
+                    # Average with agent's own vector
+                    agent.add_vector(vec, j)
 
                 # Get the prediction
-                if generator is None:
-                    prediction = x_mb
+                if encoder is None:
+                    prediction = agent.get_average_vector().reshape((1, 28, 28, 1))
                 else:
-                    prediction = np.array(generator([x_mb, m_mb]))
+                    avg_vector = agent.get_average_vector()
+                    prediction = np.array(decoder([avg_vector])) # avg vector is a combination of the agent's own vector and the vectors of other agents
                 prediction = m_mb * x_mb + (1-m_mb) * prediction
 
                 # Update global prediction
@@ -130,12 +143,21 @@ def main(steps, visualise, n_agents=2, model="none", log_dir=None):
                 global_mask = np.where(square_mask == 1, 1, global_mask)
 
                 x_offset = 280 * i
+                agent_colour = agent_colours[i]
                 
                 p_square = prediction.reshape(28, 28).T
                 for i in range(len(p_square)):
                     for j in range(len(p_square[0])):
                         colour = p_square[i][j]*255
                         pygame.draw.rect(screen, (colour, colour, colour), (i*10+x_offset, j*10+280, 10, 10))
+
+                # Draw the agent
+                pygame.draw.rect(screen, agent_colour, (x_offset, 280, 10, 10))
+                # add eyes to agent
+                pygame.draw.circle(screen, (255, 255, 255), (x_offset+7, 282), 2)
+                pygame.draw.circle(screen, (255, 255, 255), (x_offset+2, 282), 2)
+                pygame.draw.circle(screen, (0, 0, 0), (x_offset+7, 282), 1)
+                pygame.draw.circle(screen, (0, 0, 0), (x_offset+2, 282), 1)
             
             # Update global prediction
             average_prediction /= n_agents
@@ -218,25 +240,33 @@ def main(steps, visualise, n_agents=2, model="none", log_dir=None):
                 m_mb = agent.get_mask().reshape(1, 28, 28, 1)
 
                 # Share obvervations with other agents
+                if encoder is None:
+                    vector = x_mb.reshape(784)
+                    agent.set_vector(vector)
+                else:
+                    vector = np.array(encoder([x_mb, m_mb]))
+                    agent.set_vector(vector)
+
                 for j in range(n_agents):
                     if i != j:
                         distance = np.linalg.norm(np.array(pos) - np.array(agents[j].get_position()))
                         if distance <= communication_radius:
-                            agents[j].receive_observation(x_mb, m_mb)
+                            agents[j].receive_vector(vector, j)
                             communications.append((i, j))
-                            communication_overhead += x_mb.size + m_mb.size
+                            communication_overhead += vector.size + 1
 
-                # Check recieved observations from other agents
-                while agent.has_observations():
-                    obs = agent.get_observation()
-                    # Fill in the gaps
-                    agent.fill_in(obs[0], obs[1])
-
+                # Check recieved vectors from other agents
+                while agent.has_messages():
+                    vec, j = agent.get_message()
+                    # Average with agent's own vector
+                    agent.add_vector(vec, j)
+            
                 # Get the prediction
-                if generator is None:
-                    prediction = x_mb
+                if encoder is None:
+                    prediction = agent.get_average_vector().reshape((1, 28, 28, 1))
                 else:
-                    prediction = np.array(generator([x_mb, m_mb]))
+                    avg_vector = agent.get_average_vector()
+                    prediction = np.array(decoder([avg_vector])) # avg vector is a combination of the agent's own vector and the vectors of other agents
                 prediction = m_mb * x_mb + (1-m_mb) * prediction
 
                 mse_score, psnr_score, ssim_score = accuracy(env.reshape(784), prediction.reshape(784))

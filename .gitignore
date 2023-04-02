@@ -1,6 +1,7 @@
 images/
 __pycache__/
 models/
+models2/
 logs/
 out/
 old/
