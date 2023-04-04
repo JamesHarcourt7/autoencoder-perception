@@ -10,6 +10,7 @@ Original file is located at
 import numpy as np
 import matplotlib.pyplot as plt
 import tensorflow as tf
+import keras.layers as layers
 from keras.layers import Input, Dense, Reshape, Flatten
 from keras.layers import MaxPooling2D, Conv2DTranspose, Conv2D, Concatenate
 from keras.layers.convolutional import UpSampling2D, Conv2D
@@ -19,7 +20,7 @@ from utils import simulate_agent_on_samples
 
 print('GPU: ', tf.config.experimental.list_physical_devices('GPU'))
 
-DIMENSIONS = 40
+DIMENSIONS = 2
 
 # Loads the MNIST dataset.
 def load_data():
@@ -29,25 +30,34 @@ def load_data():
   x_train = x_train.reshape(60000, 28, 28, 1)
   return (x_train, y_train, x_test, y_test)
 
+class Sampling(layers.Layer):
+    def call(self, inputs):
+        z_mean, z_log_var = inputs
+
+        shape = tf.shape(z_mean)
+        batch = shape[0]
+        dim = shape[1]
+        epsilon = tf.random.normal(shape=(batch, dim))
+        return z_mean + tf.exp(0.5 * z_log_var) * epsilon
 
 def create_old_encoder():
     X = Input(shape=(28, 28, 1))
 
-    x = Conv2D(8, kernel_size=4, padding='same', activation='relu')(X)
+    x = Conv2D(32, kernel_size=3, padding='same', activation='relu')(X)
     x = MaxPooling2D(pool_size=(2, 2))(x)
-    x = Conv2D(32, kernel_size=4, padding='same', activation='relu')(x)
+    x = Conv2D(64, kernel_size=3, padding='same', activation='relu')(x)
     x = MaxPooling2D(pool_size=(2, 2))(x)
     x = Flatten()(x)
 
-    x = Dense(32, activation='relu')(x)
+    x = Dense(16, activation='relu')(x)
     
-    x = Dense(DIMENSIONS, activation='relu')(x)
+    z_mean = Dense(DIMENSIONS)(x)
+    z_log_var = Dense(DIMENSIONS)(x)
+    z = Sampling()([z_mean, z_log_var])
 
-    model = Model(inputs=[X], outputs=x)
-    model.compile(loss='binary_crossentropy', optimizer=Adam())
+    model = Model(inputs=[X], outputs=[z_mean, z_log_var, z])
 
     return model
-
 
 def create_encoder():
     X = Input(shape=(28, 28, 1))
@@ -56,9 +66,9 @@ def create_encoder():
     m = MaxPooling2D(pool_size=(4, 4))(M)
     m = Flatten()(m)
 
-    x = Conv2D(8, kernel_size=4, padding='same', activation='relu')(X)
+    x = Conv2D(32, kernel_size=3, padding='same', activation='relu')(X)
     x = MaxPooling2D(pool_size=(2, 2))(x)
-    x = Conv2D(32, kernel_size=4, padding='same', activation='relu')(x)
+    x = Conv2D(64, kernel_size=3, padding='same', activation='relu')(x)
     x = MaxPooling2D(pool_size=(2, 2))(x)
     x = Flatten()(x)
 
@@ -66,10 +76,11 @@ def create_encoder():
 
     c = Dense(64, activation='relu')(c)
     
-    c = Dense(DIMENSIONS, activation='relu')(c)
+    z_mean = Dense(DIMENSIONS)(c)
+    z_log_var = Dense(DIMENSIONS)(c)
+    z = Sampling()([z_mean, z_log_var])
 
-    model = Model(inputs=[X, M], outputs=c)
-    model.compile(loss='binary_crossentropy', optimizer=Adam())
+    model = Model(inputs=[X, M], outputs=[z_mean, z_log_var, z])
 
     return model
 
@@ -77,19 +88,17 @@ def create_encoder():
 def create_decoder():
     X = Input(shape=(DIMENSIONS,))
     
-    c = Dense(49, activation='relu')(X)
-    c = Reshape((7, 7, 1))(c)
-    c = Conv2DTranspose(32, kernel_size=4, padding='same', activation='relu')(c)
+    c = Dense(3136, activation='relu')(X)
+    c = Reshape((7, 7, 64))(c)
+    c = Conv2DTranspose(64, kernel_size=3, padding='same', activation='relu')(c)
     c = UpSampling2D(size=(2, 2))(c)
-    c = Conv2DTranspose(16, kernel_size=4, padding='same', activation='relu')(c)
+    c = Conv2DTranspose(32, kernel_size=3, padding='same', activation='relu')(c)
     c = UpSampling2D(size=(2, 2))(c)
-    c = Conv2DTranspose(1, kernel_size=4, padding='same', activation='sigmoid')(c)
+    c = Conv2DTranspose(1, kernel_size=3, padding='same', activation='sigmoid')(c)
 
     model = Model(inputs=[X], outputs=c)
-    model.compile(loss='binary_crossentropy', optimizer=Adam())
     
     return model
-
 
 
 def generate_real_samples(dataset, n_samples):
@@ -145,7 +154,6 @@ def summarize_performance(epoch, encoder, dataset, n_samples=100):
     plt.savefig(filename)
     plt.close()
 
-
 def summarize_learning(epoch, old_pair, dataset):
     # generate points in latent space
     ix = np.random.randint(0, dataset.shape[0], 100)
@@ -175,11 +183,17 @@ def summarize_learning(epoch, old_pair, dataset):
     plt.savefig(filename)
     plt.close()
 
-
-def plot_history(loss):
+def plot_history(loss, kl_losses):
     plt.plot(loss, label='loss')
     plt.legend()
     filename = 'plot_line_plot_loss.png'
+    plt.savefig(filename)
+    plt.close()
+    print('Saved %s' % (filename))
+
+    plt.plot(kl_losses, label='kl_loss')
+    plt.legend()
+    filename = 'plot_line_plot_kl_loss.png'
     plt.savefig(filename)
     plt.close()
     print('Saved %s' % (filename))
@@ -194,54 +208,82 @@ def train():
     # Create decoder
     decoder = create_decoder()
 
-    # Create pair of encoder/decoder
-    X = Input(shape=(28, 28, 1))
-    encoded = old_encoder([X])
-    decoded = decoder(encoded)
-    old_pair = Model([X], decoded)
-    old_pair.compile(loss='binary_crossentropy', optimizer=Adam())
-
     loss1 = list()
-    loss2 = list()
+    kl_losses = list()
 
-    # Train encoder/decoder pair on normal MNIST data to learn latent space
+    X = Input(shape=(28, 28, 1))
+    M = Input(shape=(28, 28, 1))
+    Z_MEAN, Z_LOG_VAR, Z = old_encoder([X])
+    decoded = decoder(Z)
+    old_pair = Model([X], decoded)
+    optimizer = Adam()
+    old_pair.compile(loss='binary_crossentropy', optimizer=optimizer)
+
     for e in range(200):
         print("Epoch: ", e)
         ix = np.random.randint(0, X_train.shape[0], 2048)
         x = X_train[ix]
 
-        loss = old_pair.fit([x], x, epochs=1, verbose=1)
-        loss1.append(loss.history['loss'][0])
+        with tf.GradientTape() as tape:
+            z_mean, z_log_var, z = old_encoder([x])
+            output = decoder(z)
+            reconstruction_loss = tf.reduce_mean(tf.reduce_sum(tf.keras.losses.binary_crossentropy(x, output),axis=[1, 2]))
+            kl_loss = -0.5 * (1 + z_log_var - tf.square(z_mean) - tf.exp(z_log_var))
+            kl_loss = tf.reduce_mean(tf.reduce_sum(kl_loss, axis=1))
+            loss = reconstruction_loss + kl_loss
+
+            loss1.append(loss)
+            kl_losses.append(kl_loss)
+        
+        grads = tape.gradient(loss, old_pair.trainable_weights)
+        optimizer.apply_gradients(zip(grads, old_pair.trainable_weights))
     
-        if e % 10 == 0:
+        if e % 20 == 0:
+            print("Loss: ", loss)
             summarize_learning(e, old_pair, X_train)
-            plot_history(loss1)
+            plot_history(loss1, kl_losses)
 
     # Throw away old encoder and train new one, so it learns to map training data to latent space
+    encoder = create_encoder()
+
+    loss1 = list()
+    kl_losses = list()
+
     X = Input(shape=(28, 28, 1))
     M = Input(shape=(28, 28, 1))
-    encoder = create_encoder()
-    encoded = encoder([X, M])
-    decoded = decoder(encoded)
+    Z_MEAN, Z_LOG_VAR, Z = encoder([X, M])
+    decoded = decoder(Z)
     decoder.trainable = False
     new_pair = Model([X, M], decoded)
-    new_pair.compile(loss='binary_crossentropy', optimizer=Adam())
+    optimizer = Adam()
+    new_pair.compile(loss='binary_crossentropy', optimizer=optimizer)
 
     for e in range(200):
         print("Epoch: ", e)
         missing, masks, complete = generate_missing_samples(X_train, 2048)
         x = np.nan_to_num(missing, 0)
 
-        loss = new_pair.fit([x, masks], complete, epochs=1, verbose=1)
-        loss2.append(loss.history['loss'][0])
+        with tf.GradientTape() as tape:
+            z_mean, z_log_var, z = encoder([x, masks])
+            output = decoder(z)
+            reconstruction_loss = tf.reduce_mean(tf.reduce_sum(tf.keras.losses.binary_crossentropy(complete, output),axis=[1, 2]))
+            kl_loss = -0.5 * (1 + z_log_var - tf.square(z_mean) - tf.exp(z_log_var))
+            kl_loss = tf.reduce_mean(tf.reduce_sum(kl_loss, axis=1))
+            loss = reconstruction_loss + kl_loss
+
+            loss1.append(loss)
+            kl_losses.append(kl_loss)
+        
+        grads = tape.gradient(loss, new_pair.trainable_weights)
+        optimizer.apply_gradients(zip(grads, new_pair.trainable_weights))
     
-        if e % 10 == 0:
+        if e % 20 == 0:
             print('Summarizing performance')
             summarize_performance(e, new_pair, X_train)
-            plot_history(loss2)
+            plot_history(loss1, kl_losses)
       
-    encoder.save('models2/encoder.h5')
-    decoder.save('models2/decoder.h5')
+    encoder.save('models2/vae-split/encoder.h5')
+    decoder.save('models2/vae-split/decoder.h5')
 
 
 def train_alt():
@@ -254,29 +296,41 @@ def train_alt():
     decoder = create_decoder()
 
     loss1 = list()
+    kl_losses = list()
 
     X = Input(shape=(28, 28, 1))
     M = Input(shape=(28, 28, 1))
-    encoder = create_encoder()
-    encoded = encoder([X, M])
-    decoded = decoder(encoded)
+    Z_MEAN, Z_LOG_VAR, Z = encoder([X, M])
+    decoded = decoder(Z)
     new_pair = Model([X, M], decoded)
-    new_pair.compile(loss='binary_crossentropy', optimizer=Adam())
+    optimizer = Adam()
+    new_pair.compile(loss='binary_crossentropy', optimizer=optimizer)
 
-    for e in range(200):
+    for e in range(600):
         print("Epoch: ", e)
         missing, masks, complete = generate_missing_samples(X_train, 2048)
         x = np.nan_to_num(missing, 0)
 
-        loss = new_pair.fit([x, masks], complete, epochs=1, verbose=1)
-        loss1.append(loss.history['loss'][0])
+        with tf.GradientTape() as tape:
+            z_mean, z_log_var, z = encoder([x, masks])
+            output = decoder(z)
+            reconstruction_loss = tf.reduce_mean(tf.reduce_sum(tf.keras.losses.binary_crossentropy(complete, output),axis=[1, 2]))
+            kl_loss = -0.5 * (1 + z_log_var - tf.square(z_mean) - tf.exp(z_log_var))
+            kl_loss = tf.reduce_mean(tf.reduce_sum(kl_loss, axis=1))
+            loss = reconstruction_loss + kl_loss
+
+            loss1.append(loss)
+            kl_losses.append(kl_loss)
+        
+        grads = tape.gradient(loss, new_pair.trainable_weights)
+        optimizer.apply_gradients(zip(grads, new_pair.trainable_weights))
     
         if e % 10 == 0:
             print('Summarizing performance')
             summarize_performance(e, new_pair, X_train)
-            plot_history(loss1)
+            plot_history(loss1, kl_losses)
       
-    encoder.save('models2/encoder.h5')
-    decoder.save('models2/decoder.h5')
+    encoder.save('models2/vae-nosplit/encoder.h5')
+    decoder.save('models2/vae-nosplit/decoder.h5')
 
 train()

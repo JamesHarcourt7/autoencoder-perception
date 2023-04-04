@@ -2,7 +2,7 @@ import csv
 import matplotlib.pyplot as plt
 import numpy as np
 
-model_lables = {"none": "Baseline", "no-mask": "No Mask", "mask": "Mask", "dims": "40 Hidden Dimensions"}
+model_lables = {"none": "Baseline", "no-mask": "1P AE No Mask", "mask": "1P AE With Mask", "dims": "1P AE Increased Latent Space", "split": "2P AE With Mask", "split-dims": "2P AE Increased Latent Space", "vae-nosplit": "1P VAE", "vae-split": "2P VAE"}
 
 class Entry:
 
@@ -32,6 +32,9 @@ with open('resultsfinal.csv', 'r') as f:
                 explorations = np.array(data[i+5][1:]).astype(np.float32)
                 entry = Entry(digit, model, mse, psnr, ssim, explorations)
                 entries.append(entry)
+
+    # Sort entries by model in same order as model_lables keys
+    entries = sorted(entries, key=lambda entry: list(model_lables.keys()).index(entry.model))
 
 max_mse = np.max([np.max(entry.mse) for entry in entries])
 min_mse = 0
@@ -143,7 +146,7 @@ for digit in models:
 
 # plot the mean and std dev of the accuracies and explorations for each digit
 for digit in models:
-    plt.figure(figsize=(20, 5))
+    plt.figure(figsize=(30, 7.5))
 
     plt.subplot(1, 4, 1)
     for model in models[digit]:
@@ -152,7 +155,7 @@ for digit in models:
         model_std_dev_mse = np.std([entry.mse for entry in models[digit][model]], axis=0)
 
         plt.plot(model_mean_mse, label=model_lables[model])
-        plt.fill_between(np.arange(len(model_mean_mse)), model_mean_mse - model_std_dev_mse, model_mean_mse + model_std_dev_mse, alpha=0.5)
+        plt.fill_between(np.arange(len(model_mean_mse)), model_mean_mse - model_std_dev_mse, model_mean_mse + model_std_dev_mse, alpha=0.3)
 
     plt.legend(loc='upper right')
     plt.xlabel("Steps")
@@ -166,7 +169,7 @@ for digit in models:
         model_std_dev_psnr = np.std([entry.psnr for entry in models[digit][model]], axis=0)
 
         plt.plot(model_mean_psnr, label=model_lables[model])
-        plt.fill_between(np.arange(len(model_mean_psnr)), model_mean_psnr - model_std_dev_psnr, model_mean_psnr + model_std_dev_psnr, alpha=0.5)
+        plt.fill_between(np.arange(len(model_mean_psnr)), model_mean_psnr - model_std_dev_psnr, model_mean_psnr + model_std_dev_psnr, alpha=0.3)
     
     plt.legend(loc='upper left')
     plt.xlabel("Steps")
@@ -180,7 +183,7 @@ for digit in models:
         model_std_dev_ssim = np.std([entry.ssim for entry in models[digit][model]], axis=0)
 
         plt.plot(model_mean_ssim, label=model_lables[model])
-        plt.fill_between(np.arange(len(model_mean_ssim)), model_mean_ssim - model_std_dev_ssim, model_mean_ssim + model_std_dev_ssim, alpha=0.5)
+        plt.fill_between(np.arange(len(model_mean_ssim)), model_mean_ssim - model_std_dev_ssim, model_mean_ssim + model_std_dev_ssim, alpha=0.3)
     
     plt.legend(loc='lower right')
     plt.xlabel("Steps")
@@ -194,7 +197,7 @@ for digit in models:
         model_std_dev_explorations = np.std([entry.explorations for entry in models[digit][model]], axis=0)
 
         plt.plot(model_mean_explorations, label=model_lables[model])
-        plt.fill_between(np.arange(len(model_mean_explorations)), model_mean_explorations - model_std_dev_explorations, model_mean_explorations + model_std_dev_explorations, alpha=0.5)
+        plt.fill_between(np.arange(len(model_mean_explorations)), model_mean_explorations - model_std_dev_explorations, model_mean_explorations + model_std_dev_explorations, alpha=0.3)
 
     plt.legend(loc='upper left')
     plt.xlabel("Steps")

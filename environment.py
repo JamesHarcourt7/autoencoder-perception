@@ -13,20 +13,6 @@ from skimage.metrics import structural_similarity as ssim
 from agent import Agent
 
 
-def generate_image(truth, measurement, prediction, logdir, dim=(1,3), figsize=(10,10)):
-    plt.figure(figsize=figsize)
-    plt.subplot(dim[0], dim[1], 1)
-    plt.imshow(truth.reshape(28, 28), interpolation='nearest')
-    plt.subplot(dim[0], dim[1], 2)
-    plt.imshow(measurement.reshape(28, 28), interpolation='nearest')
-    plt.subplot(dim[0], dim[1], 3)
-    plt.imshow(prediction.reshape(28, 28), interpolation='nearest')
-    plt.axis('off')
-    plt.tight_layout()
-    plt.savefig(logdir + '/prediction.png')
-    plt.close('all')
-
-
 def accuracy(truth, prediction):
     mse_score = np.mean(np.power(truth-prediction, 2))
     psnr_score = 20 * np.log10(np.max(truth) / np.sqrt(mse_score))
@@ -46,10 +32,17 @@ def main(steps, visualise, model='none', log_dir=None):
     print(np.max(env), np.min(env))
 
     if model == "none":
-        generator = None
-    else:
+        encoder = None
+        decoder = None
+    elif model in ["dims-old", "mask-old", "no-mask"]:
         path = os.path.join(os.getcwd(), "models", model, "encoder.h5")
-        generator = keras.models.load_model(path)
+        encoder = keras.models.load_model(path)
+        decoder = None
+    else:
+        path = os.path.join(os.getcwd(), "models2", model, "encoder.h5")
+        encoder = keras.models.load_model(path)
+        path = os.path.join(os.getcwd(), "models2", model, "decoder.h5")
+        decoder = keras.models.load_model(path)
 
     # Create agent
     agent = Agent((14, 14), (28, 28))
@@ -73,10 +66,16 @@ def main(steps, visualise, model='none', log_dir=None):
             m_mb = agent.get_mask().reshape(1, 28, 28, 1)
 
             # Get the prediction
-            if generator is None:
+            if encoder is None:
                 prediction = x_mb
+            elif decoder is None:
+                if model == "no-mask":
+                    prediction = np.array(encoder([x_mb]))
+                else:
+                    prediction = np.array(encoder([x_mb, m_mb]))
             else:
-                prediction = np.array(generator([x_mb, m_mb]))
+                encoded = encoder([x_mb, m_mb])
+                prediction = np.array(decoder(encoded))
             prediction = m_mb * x_mb + (1-m_mb) * prediction
             
             mse_score, psnr_score, ssim_score = accuracy(env.reshape(784), prediction.reshape(784))
@@ -99,40 +98,26 @@ def main(steps, visualise, model='none', log_dir=None):
             screen.fill((0, 0, 0))
             x_square = x_mb.reshape(28, 28)
             for i in range(len(env_square)):
-                    for j in range(len(env_square[0])):
-                        for x in range(10):
-                            for y in range(10):
-                                if (np.isnan(env_square[i][j])):
-                                    screen.set_at((i*10+x, j*10+y), (191,79,92))
-                                else:
-                                    screen.set_at((i*10+x, j*10+y), (env_square[i][j]*255, env_square[i][j]*255, env_square[i][j]*255))
+                for j in range(len(env_square[0])):
+                    colour = env_square[i][j]*255
+                    pygame.draw.rect(screen, (colour, colour, colour), (i*10, j*10, 10, 10))
             for i in range(len(x_square)):
                 for j in range(len(x_square[0])):
-                    for x in range(10):
-                        for y in range(10):
-                            if (np.isnan(x_square[i][j])):
-                                screen.set_at((i*10+x+280, j*10+y), (191,79,92))
-                            else:
-                                screen.set_at((i*10+x+280, j*10+y), (x_square[i][j]*255, x_square[i][j]*255, x_square[i][j]*255))
+                    colour = x_square[i][j]*255
+                    pygame.draw.rect(screen, (colour, colour, colour), (i*10+280, j*10, 10, 10))
             m_square = m_mb.reshape(28, 28)
             for i in range(len(m_square)):
                 for j in range(len(m_square[0])):
-                    for x in range(10):
-                        for y in range(10):
-                            screen.set_at((i*10+x+560, j*10+y), (m_square[i][j]*255, m_square[i][j]*255, m_square[i][j]*255))
+                    colour = m_square[i][j]*255
+                    pygame.draw.rect(screen, (colour, colour, colour), (i*10+560, j*10, 10, 10))
             p_square = prediction.reshape(28, 28)
             for i in range(len(p_square)):
                 for j in range(len(p_square[0])):
-                    for x in range(10):
-                        for y in range(10):
-                            if (np.isnan(p_square[i][j])):
-                                screen.set_at((i*10+x+840, j*10+y), (191,79,92))
-                            else:
-                                screen.set_at((i*10+x+840, j*10+y), (p_square[i][j]*255, p_square[i][j]*255, p_square[i][j]*255))
+                    colour = p_square[i][j]*255
+                    pygame.draw.rect(screen, (colour, colour, colour), (i*10+840, j*10, 10, 10))
             
-            for x in range(10):
-                for y in range(10):
-                    screen.set_at((pos[1]*10+x+280, pos[0]*10+y), (255, 0, 0))
+            # Draw the agent
+            pygame.draw.rect(screen, (255, 0, 0), (pos[1]*10+280, pos[0]*10, 10, 10))
             # add eyes to agent
             pygame.draw.circle(screen, (255, 255, 255), (pos[1]*10+280+7, pos[0]*10+2), 2)
             pygame.draw.circle(screen, (255, 255, 255), (pos[1]*10+280+2, pos[0]*10+2), 2)
@@ -164,13 +149,16 @@ def main(steps, visualise, model='none', log_dir=None):
             m_mb = agent.get_mask().reshape(1, 28, 28, 1)
 
             # Get the prediction
-            if generator is None:
-                prediction = x_mb 
-            else:
-                if model is None or model == 'no-mask':
-                    prediction = np.array(generator([x_mb]))
+            if encoder is None:
+                prediction = x_mb
+            elif decoder is None:
+                if model == "no-mask":
+                    prediction = np.array(encoder([x_mb]))
                 else:
-                    prediction = np.array(generator([x_mb, m_mb]))
+                    prediction = np.array(encoder([x_mb, m_mb]))
+            else:
+                encoded = encoder([x_mb, m_mb])
+                prediction = np.array(decoder(encoded))
             prediction = m_mb * x_mb + (1-m_mb) * prediction
 
             mse_score, psnr_score, ssim_score = accuracy(env.reshape(784), prediction.reshape(784))
@@ -181,7 +169,6 @@ def main(steps, visualise, model='none', log_dir=None):
             percentages_explored.append(percentage_explored)
 
         print("Prediction Accuracy: {} {} {}".format(mse_score, psnr_score, ssim_score))
-        generate_image(env, m_mb, prediction, log_dir)
 
         # Save to csv
         with open(log_dir + "/accuracies.csv", "w") as f:
