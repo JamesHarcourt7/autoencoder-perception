@@ -7,3 +7,4 @@ out/
 old/
 *.csv
 *.png
+.DS_Store

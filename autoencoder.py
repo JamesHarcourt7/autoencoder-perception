@@ -32,8 +32,6 @@ def load_data():
   x_train = x_train.reshape(60000, 28, 28, 1)
   return (x_train, y_train, x_test, y_test)
 
-(X_train, y_train,X_test, y_test)=load_data()
-print(X_train.shape)
 
 from inspect import modulesbyfile
 # Feed generator noise samples and will produce digit
@@ -159,4 +157,34 @@ def train():
   
   encoder.save('models/encoder.h5')
 
-train()
+(X, _, _, _) = load_data()
+missing, masks, complete = generate_missing_samples(X, 2048)
+x = np.nan_to_num(missing, 0)
+
+plt.figure(figsize=(60, 20))
+# plot images
+for i in range(100):
+  # define subplot
+  plt.subplot(10, 30, 3 * i + 3)
+  # turn off axis
+  plt.axis('off')
+  # plot raw pixel data
+  plt.imshow(missing[i])
+
+  plt.subplot(10, 30, 3 * i + 2)
+  # turn off axis
+  plt.axis('off')
+  # plot raw pixel data
+  plt.imshow(masks[i])
+
+  plt.subplot(10, 30, 3 * i + 1)
+  # turn off axis
+  plt.axis('off')
+  # plot raw pixel data
+  plt.imshow(complete[i])
+
+# save plot to file
+filename = 'zzz.png'
+plt.savefig(filename)
+
+
