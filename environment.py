@@ -27,7 +27,7 @@ def main(steps, visualise, model='none', log_dir=None):
     data_x = np.reshape(np.asarray(data_x), [60000, 784]).astype(float)
     norm_data, _ = normalization(data_x)
     norm_data_x = np.nan_to_num(norm_data, 0)
-    data_index = 0
+    data_index = 5016
     env = norm_data_x[data_index]
     print(np.max(env), np.min(env))
 
@@ -90,7 +90,7 @@ def main(steps, visualise, model='none', log_dir=None):
             m_mb = m_mb.reshape(28, 28).T
             prediction = prediction.reshape(28, 28).T
 
-            clock.tick(60)
+            clock.tick(30)
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
@@ -114,7 +114,8 @@ def main(steps, visualise, model='none', log_dir=None):
             for i in range(len(p_square)):
                 for j in range(len(p_square[0])):
                     colour = p_square[i][j]*255
-                    pygame.draw.rect(screen, (colour, colour, colour), (i*10+840, j*10, 10, 10))
+                    modifier = (m_square[i][j] + 1)/2
+                    pygame.draw.rect(screen, (modifier * colour, colour, modifier * colour), (i*10+840, j*10, 10, 10))
             
             # Draw the agent
             pygame.draw.rect(screen, (255, 0, 0), (pos[1]*10+280, pos[0]*10, 10, 10))
@@ -138,6 +139,9 @@ def main(steps, visualise, model='none', log_dir=None):
 
         # Run the agent in the environment
         for step in range(steps):
+            if step % 100 == 0:
+                print("Step: {}".format(step))
+
             pos = agent.get_position()
 
             env_square = env.reshape(28, 28)
@@ -171,7 +175,7 @@ def main(steps, visualise, model='none', log_dir=None):
         print("Prediction Accuracy: {} {} {}".format(mse_score, psnr_score, ssim_score))
 
         # Save to csv
-        with open(log_dir + "/accuracies.csv", "w") as f:
+        with open(log_dir + "/accuracies.csv", "a") as f:
             writer = csv.writer(f)
             writer.writerows([["Data Index", data_index],
                               ["Network", model],
@@ -210,4 +214,6 @@ if __name__ == "__main__":
         model = sys.argv[2]
     if len(sys.argv) > 3:
         output_dir = sys.argv[3]
-    main(1000, visualise, model, output_dir)
+
+    for _ in range(20):
+        main(1000, visualise, model, output_dir)

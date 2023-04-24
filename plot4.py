@@ -122,37 +122,42 @@ for beta in betas:
     plt.savefig("beta_" + str(beta) + ".png")
 
 # plot the mean and std dev of the accuracies and explorations for each decay
-plt.figure(figsize=(30, 7.5))
+plt.figure(figsize=(10, 7.5))
 
-for i, decay in enumerate(decays):
+decay_list = sorted(decays.keys())
+
+for i, decay in enumerate(decay_list):
     model_mean_mse = np.mean([entry.mse for entry in decays[decay]], axis=0)
     model_std_dev_mse = np.std([entry.mse for entry in decays[decay]], axis=0)
 
     plt.plot(model_mean_mse, label=decay)
-    plt.fill_between(np.arange(len(model_mean_mse)), model_mean_mse - model_std_dev_mse, model_mean_mse + model_std_dev_mse, alpha=0.5)
+    #plt.fill_between(np.arange(len(model_mean_mse)), model_mean_mse - model_std_dev_mse, model_mean_mse + model_std_dev_mse, alpha=0.5)
 
 plt.legend(loc='upper right')
-plt.xlabel("Steps")
+plt.xlabel("Time (steps)")
 plt.ylabel("MSE")
-plt.title("Comparison of MSE")
+plt.title("Comparison of MSE for different decay values")
 plt.ylim(min_mse, max_mse)
 
 plt.savefig("decay_all.png")
 
 # plot the mean and std dev of the accuracies and explorations for each beta
-plt.figure(figsize=(30, 7.5))
+plt.figure(figsize=(10, 7.5))
 
-for i, beta in enumerate(betas):
+beta_list = sorted(list(betas.keys()))
+
+for i, beta in enumerate(beta_list):
+    print(len(betas[beta]))
     model_mean_mse = np.mean([entry.mse for entry in betas[beta]], axis=0)
     model_std_dev_mse = np.std([entry.mse for entry in betas[beta]], axis=0)
 
     plt.plot(model_mean_mse, label=beta)
-    plt.fill_between(np.arange(len(model_mean_mse)), model_mean_mse - model_std_dev_mse, model_mean_mse + model_std_dev_mse, alpha=0.5)
+    #plt.fill_between(np.arange(len(model_mean_mse)), model_mean_mse - model_std_dev_mse, model_mean_mse + model_std_dev_mse, alpha=0.5)
 
 plt.legend(loc='upper right')
-plt.xlabel("Steps")
+plt.xlabel("Time (steps)")
 plt.ylabel("MSE")
-plt.title("Comparison of MSE")
+plt.title("Comparison of MSE for different beta values")
 plt.ylim(min_mse, max_mse)
 
 plt.savefig("beta_all.png")

@@ -2,7 +2,7 @@ import csv
 import matplotlib.pyplot as plt
 import numpy as np
 
-model_lables = {"none": "Baseline", "no-mask": "1P AE No Mask", "mask": "1P AE With Mask", "dims": "1P AE Increased Latent Space", "split": "2P AE With Mask", "split-dims": "2P AE Increased Latent Space", "vae-nosplit": "1P VAE", "vae-split": "2P VAE"}
+model_lables = {"none": "Baseline", "no-mask": "1P AE No Mask", "mask": "Autoencoder", "dims": "1P AE Increased Latent Space", "split": "2P AE With Mask", "split-dims": "2P AE Increased Latent Space", "vae-nosplit": "1P VAE", "vae-split": "2P VAE"}
 
 class Entry:
 
@@ -29,7 +29,7 @@ with open('resultsfinal.csv', 'r') as f:
                 mse = np.array(data[i+2][1:]).astype(np.float32)
                 psnr = np.array(data[i+3][1:]).astype(np.float32)
                 ssim = np.array(data[i+4][1:]).astype(np.float32)
-                explorations = np.array(data[i+5][1:]).astype(np.float32)
+                explorations = np.array(data[i+5][1:]).astype(np.float32) * 100
                 entry = Entry(digit, model, mse, psnr, ssim, explorations)
                 entries.append(entry)
 
@@ -68,7 +68,7 @@ for digit in models:
         for entry in models[digit][model]:
             plt.subplot(2, 4, 1)
             plt.plot(entry.mse)
-            plt.xlabel("Steps")
+            plt.xlabel("Time (steps)")
             plt.ylabel("MSE")
             plt.title("{}: MSE".format(model_lables[model]))
             plt.ylim(min_mse, max_mse)
@@ -76,7 +76,7 @@ for digit in models:
         for entry in models[digit][model]:
             plt.subplot(2, 4, 2)
             plt.plot(entry.psnr)
-            plt.xlabel("Steps")
+            plt.xlabel("Time (steps)")
             plt.ylabel("PSNR")
             plt.title("{}: PSNR".format(model_lables[model]))
             plt.ylim(min_psnr, max_psnr)
@@ -84,7 +84,7 @@ for digit in models:
         for entry in models[digit][model]:
             plt.subplot(2, 4, 3)
             plt.plot(entry.ssim)
-            plt.xlabel("Steps")
+            plt.xlabel("Time (steps)")
             plt.ylabel("SSIM")
             plt.title("{}: SSIM".format(model_lables[model]))
             plt.ylim(min_ssim, max_ssim)
@@ -92,7 +92,7 @@ for digit in models:
         for entry in models[digit][model]:
             plt.subplot(2, 4, 4)
             plt.plot(entry.explorations)
-            plt.xlabel("Steps")
+            plt.xlabel("Time (steps)")
             plt.ylabel("Percentage Explored")
             plt.title("{}: Percentage Explored".format(model_lables[model]))
             plt.ylim(0, 1)
@@ -110,7 +110,7 @@ for digit in models:
         plt.plot(mean_mse, label="{} Mean".format(model_lables[model]))
         plt.fill_between(np.arange(len(mean_mse)), mean_mse - std_dev_mse, mean_mse + std_dev_mse, alpha=0.5)
         plt.legend(loc='upper right')
-        plt.xlabel("Steps")
+        plt.xlabel("Time (steps)")
         plt.ylabel("MSE")
         plt.title("{}: Mean MSE".format(model_lables[model]))
         plt.ylim(min_mse, max_mse)
@@ -119,7 +119,7 @@ for digit in models:
         plt.plot(mean_psnr, label="{} Mean".format(model_lables[model]))
         plt.fill_between(np.arange(len(mean_psnr)), mean_psnr - std_dev_psnr, mean_psnr + std_dev_psnr, alpha=0.5)
         plt.legend(loc='upper left')
-        plt.xlabel("Steps")
+        plt.xlabel("Time (steps)")
         plt.ylabel("PSNR")
         plt.title("{}: Mean PSNR".format(model_lables[model]))
         plt.ylim(min_psnr, max_psnr)
@@ -128,7 +128,7 @@ for digit in models:
         plt.plot(mean_ssim, label="{} Mean".format(model_lables[model]))
         plt.fill_between(np.arange(len(mean_ssim)), mean_ssim - std_dev_ssim, mean_ssim + std_dev_ssim, alpha=0.5)
         plt.legend(loc='lower right')
-        plt.xlabel("Steps")
+        plt.xlabel("Time (steps)")
         plt.ylabel("SSIM")
         plt.title("{}: Mean SSIM".format(model_lables[model]))
         plt.ylim(min_ssim, max_ssim)
@@ -137,7 +137,7 @@ for digit in models:
         plt.plot(mean_explorations, label="{} Mean".format(model_lables[model]))
         plt.fill_between(np.arange(len(mean_explorations)), mean_explorations - std_dev_explorations, mean_explorations + std_dev_explorations, alpha=0.5)
         plt.legend(loc='upper left')
-        plt.xlabel("Steps")
+        plt.xlabel("Time (steps)")
         plt.ylabel("Percentage Explored")
         plt.title("{}: Percentage Explored".format(model_lables[model]))
         plt.ylim(0, 1)
@@ -146,7 +146,7 @@ for digit in models:
 
 # plot the mean and std dev of the accuracies and explorations for each digit
 for digit in models:
-    plt.figure(figsize=(30, 7.5))
+    plt.figure(figsize=(20, 5))
 
     plt.subplot(1, 4, 1)
     for model in models[digit]:
@@ -158,7 +158,7 @@ for digit in models:
         plt.fill_between(np.arange(len(model_mean_mse)), model_mean_mse - model_std_dev_mse, model_mean_mse + model_std_dev_mse, alpha=0.3)
 
     plt.legend(loc='upper right')
-    plt.xlabel("Steps")
+    plt.xlabel("Time (steps)")
     plt.ylabel("MSE")
     plt.title("Comparison of MSE")
     plt.ylim(min_mse, max_mse)
@@ -172,7 +172,7 @@ for digit in models:
         plt.fill_between(np.arange(len(model_mean_psnr)), model_mean_psnr - model_std_dev_psnr, model_mean_psnr + model_std_dev_psnr, alpha=0.3)
     
     plt.legend(loc='upper left')
-    plt.xlabel("Steps")
+    plt.xlabel("Time (steps)")
     plt.ylabel("PSNR")
     plt.title("Comparison of PSNR")
     plt.ylim(min_psnr, max_psnr)
@@ -186,7 +186,7 @@ for digit in models:
         plt.fill_between(np.arange(len(model_mean_ssim)), model_mean_ssim - model_std_dev_ssim, model_mean_ssim + model_std_dev_ssim, alpha=0.3)
     
     plt.legend(loc='lower right')
-    plt.xlabel("Steps")
+    plt.xlabel("Time (steps)")
     plt.ylabel("SSIM")
     plt.title("Comparison of SSIM")
     plt.ylim(min_ssim, max_ssim)
@@ -200,9 +200,9 @@ for digit in models:
         plt.fill_between(np.arange(len(model_mean_explorations)), model_mean_explorations - model_std_dev_explorations, model_mean_explorations + model_std_dev_explorations, alpha=0.3)
 
     plt.legend(loc='upper left')
-    plt.xlabel("Steps")
+    plt.xlabel("Time (steps)")
     plt.ylabel("Percentage Explored")
     plt.title("Percentage Explored")
-    plt.ylim(0, 1)
+    plt.ylim(0, 100)
 
     plt.savefig("digit_" + str(digit) + "_all.png")
