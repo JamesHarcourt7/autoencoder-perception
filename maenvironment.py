@@ -408,7 +408,7 @@ if __name__ == "__main__":
             for _ in range(5):
                 idx = np.where(y_train == digit)[0][0]
                 print(time.time() - start, n, digit, idx)
-                main(1000, True, n, idx, str(digit))
+                main(1000, False, n, idx, str(digit))
 
 '''
 if __name__ == '__main__':
