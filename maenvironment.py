@@ -38,7 +38,7 @@ def accuracy(truth, prediction):
 
 def main(steps, visualise, n_agents=2, idx1=1, digit="0"):
     # Create the environment
-    (data_x, _), _ = load_mnist.load_data()
+    (data_x, _), _ = load_mnist()
     data_x = np.reshape(np.asarray(data_x), [60000, 784]).astype(float)
     norm_data, _ = normalization(data_x)
     norm_data_x = np.nan_to_num(norm_data, 0)
@@ -399,7 +399,7 @@ if __name__ == "__main__":
 '''
 
 if __name__ == "__main__":
-    (X_train, y_train), (X_test, y_test) = load_mnist.load_data()
+    (X_train, y_train), (X_test, y_test) = load_mnist()
     start = time.time()
     for n in range(0, 51, 10):
         if n == 0:
@@ -408,7 +408,7 @@ if __name__ == "__main__":
             for _ in range(5):
                 idx = np.where(y_train == digit)[0][0]
                 print(time.time() - start, n, digit, idx)
-                main(1000, False, n, idx, str(digit))
+                main(1000, True, n, idx, str(digit))
 
 '''
 if __name__ == '__main__':
