@@ -1,17 +1,15 @@
 # Dynamic environment
 
 import numpy as np
-import matplotlib.pyplot as plt
 import pygame
-import sys
 import os
-import datetime
 from utils import normalization
 from keras.datasets import mnist
 import keras
 import csv
 from skimage.metrics import structural_similarity as ssim
 import time
+from load_mnist import load_data as load_mnist
 
 from agent import Agent2 as Agent
 
@@ -40,7 +38,7 @@ def accuracy(truth, prediction):
 
 def main(steps, visualise, n_agents=2, idx1=1, digit="0"):
     # Create the environment
-    (data_x, _), _ = mnist.load_data()
+    (data_x, _), _ = load_mnist.load_data()
     data_x = np.reshape(np.asarray(data_x), [60000, 784]).astype(float)
     norm_data, _ = normalization(data_x)
     norm_data_x = np.nan_to_num(norm_data, 0)
@@ -401,7 +399,7 @@ if __name__ == "__main__":
 '''
 
 if __name__ == "__main__":
-    (X_train, y_train), (X_test, y_test) = mnist.load_data()
+    (X_train, y_train), (X_test, y_test) = load_mnist.load_data()
     start = time.time()
     for n in range(0, 51, 10):
         if n == 0:
