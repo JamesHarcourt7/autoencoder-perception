@@ -7,16 +7,20 @@ n_map1 = dict()
 n_map2 = dict()
 count = 0
 
-threshold = 0.8
+threshold = 0.9
 
-with open('scenario2proper/baseline/decisions.csv', 'r') as file:
+with open('scenario2proper2/baseline/decisions.csv', 'r') as file:
     reader = csv.reader(file)
     data = list(reader)
 
     for i in range(len(data)):
         if data[i][0] == 'n':
-            count += 1
+            
             n = int(data[i][1])
+            if n == 1:
+                continue
+
+            count += 1
             digit = data[i][2]
             if n not in n_map1:
                 n_map1[n] = list()
@@ -38,14 +42,19 @@ with open('scenario2proper/baseline/decisions.csv', 'r') as file:
                     n_map1[n].append(1000)
 
 print()
-with open('scenario2proper/mask/decisions.csv', 'r') as file:
+with open('scenario2proper2/mask/decisions.csv', 'r') as file:
     reader = csv.reader(file)
     data = list(reader)
 
     for i in range(len(data)):
         if data[i][0] == 'n':
-            count += 1
+
             n = int(data[i][1])
+            if n == 1:
+                continue
+
+            count += 1
+
             digit = data[i][2]
             if n not in n_map1:
                 n_map1[n] = list()
@@ -85,23 +94,17 @@ for n in n_map1:
     plt.bar(n + 1.5, average2, width=3, yerr=std_dev2, label='Autoencoder', color='deepskyblue', ecolor='cornflowerblue', capsize=5)
 
 # Line of best fit
-ticks = [i for i in range(0, 51, 10)]
-ticks[0] = 1
+ticks = [i for i in range(10, 41, 10)]
 ticks = np.array(ticks)
-a, b = np.polyfit((ticks - 1.5), np.array([sum(n_map1[n])/len(n_map1[n]) for n in n_map1]), 1)
-plt.plot(ticks - 1.5, a*(ticks - 1.5)+b, color='red', linestyle='dashed', label='Baseline (Linear Fit)')
-a, b = np.polyfit((ticks + 1.5), np.array([sum(n_map2[n])/len(n_map2[n]) for n in n_map2]), 1)
-plt.plot(ticks + 1.5, a*(ticks + 1.5)+b, color='blue', linestyle='dashed', label='Autoencoder (Linear Fit)')
-
 
 plt.ylabel('Time (Steps)')
 plt.xlabel('Number of Agents')
-plt.title('Time to {}% Consensus for Baseline and Autoencoder (10 Repeats)'.format(threshold*100))
+plt.title('Time to {}% Consensus for Baseline and Autoencoder (10 digits, 5 repeats each)'.format(threshold*100))
 plt.xticks(ticks)
 handles, labels = plt.gca().get_legend_handles_labels()
 by_label = dict(zip(labels, handles))
 plt.legend(by_label.values(), by_label.keys())
 plt.ylim(0, 1000)
 #plt.yscale('log')
-plt.savefig('scenario2_decision_time5.png')
+plt.savefig('scenario2_decision6.png')
 

@@ -47,11 +47,17 @@ def main(steps, visualise, n_agents=2, idx1=1, digit="0"):
     env_square = env.reshape(28, 28)
     tenv_square = env_square.T
 
-    model = "mask"
+    model = "dims"
     path = os.path.join(os.getcwd(), "models2", model, "encoder.h5")
     encoder = keras.models.load_model(path)
     path = os.path.join(os.getcwd(), "models2", model, "decoder.h5")
     decoder = keras.models.load_model(path)
+    
+    model = "mask"
+    path = os.path.join(os.getcwd(), "models2", model, "encoder.h5")
+    encoder2 = keras.models.load_model(path)
+    path = os.path.join(os.getcwd(), "models2", model, "decoder.h5")
+    decoder2 = keras.models.load_model(path)
 
     # Get classifier
     path = os.path.join(os.getcwd(), "models2", "classifier.h5")
@@ -182,7 +188,8 @@ def main(steps, visualise, n_agents=2, idx1=1, digit="0"):
                     for i in range(len(p_square)):
                         for j in range(len(p_square[0])):
                             colour = p_square[i][j]*255
-                            pygame.draw.rect(screen, (colour, colour, colour), (i*10+x_offset, j*10+280, 10, 10))
+                            modifier = (m_square[i][j] + 1) / 2 
+                            pygame.draw.rect(screen, (colour * modifier, colour, colour * modifier), (i*10+x_offset, j*10+280, 10, 10))
 
                     # Draw the agent
                     pygame.draw.rect(screen, agent_colour, (x_offset, 280, 10, 10))
@@ -268,10 +275,10 @@ def main(steps, visualise, n_agents=2, idx1=1, digit="0"):
                 m_mb = agent.get_mask().reshape(1, 28, 28, 1)
 
                 # Share obvervations with other agents
-                vector = x_mb.reshape(784)
+                vector = np.array(encoder([x_mb, m_mb]))
                 agent.set_vector1(vector)
 
-                vector = np.array(encoder([x_mb, m_mb]))
+                vector = np.array(encoder2([x_mb, m_mb]))
                 agent.set_vector2(vector)
 
                 vector_to_send1 = agent.get_average_vector1()
@@ -306,10 +313,10 @@ def main(steps, visualise, n_agents=2, idx1=1, digit="0"):
 
                 # Get the prediction
                 avg_vector = agent.get_average_vector1()
-                prediction = avg_vector.reshape((1, 28, 28, 1))
+                prediction = np.array(decoder(avg_vector))
                 
                 avg_vector = agent.get_average_vector2()
-                prediction2 = np.array(decoder([avg_vector])) # avg vector is a combination of the agent's own vector and the vectors of other agents
+                prediction2 = np.array(decoder2([avg_vector])) # avg vector is a combination of the agent's own vector and the vectors of other agents
                 
                 prediction = m_mb * x_mb + (1-m_mb) * prediction
                 prediction2 = m_mb * x_mb + (1-m_mb) * prediction2
@@ -349,13 +356,13 @@ def main(steps, visualise, n_agents=2, idx1=1, digit="0"):
                                 + [["Overhead"] + average_communication_overhead])
         '''
             
-        with open("scenario2proper/baseline/decisions.csv", "a") as f:
+        with open("scenario2proper/dims/decisions.csv", "a") as f:
             data = [[decisions[k] for k in range(0, n_agents)] for decisions in time_decisions]
             writer = csv.writer(f)
             writer.writerow(["n", n_agents, digit])
             writer.writerows(data)
 
-        with open("scenario2proper/mask/decisions.csv", "a") as f:
+        with open("scenario2proper/othermask/decisions.csv", "a") as f:
             data = [[decisions[k] for k in range(0, n_agents)] for decisions in time_decisions2]
             writer = csv.writer(f)
             writer.writerow(["n", n_agents, digit])
@@ -397,18 +404,13 @@ if __name__ == "__main__":
                         main(1000, False, 4, model, out, idx1, idx2, decay, beta, starting_confidence)
 '''
 
-'''
 if __name__ == "__main__":
     (X_train, y_train), (X_test, y_test) = load_mnist()
     start = time.time()
-    for n in range(0, 51, 10):
-        if n == 0:
-            n = 1
-        for digit in range(10):
-            for _ in range(5):
-                idx = np.where(y_train == digit)[0][0]
-                print(time.time() - start, n, digit, idx)
-                main(1000, False, n, idx, str(digit))
+    for digit in range(10):
+        idx = np.where(y_train == digit)[0][0]
+        print(time.time() - start, 10, digit, idx)
+        main(1000, False, 10, idx, str(digit))
 
 '''
 if __name__ == '__main__':
@@ -417,5 +419,5 @@ if __name__ == '__main__':
     idx1 = np.random.choice(np.where(y_train == label1)[0], 1)
     idx2 = np.random.choice(np.where(y_train != label1)[0], 1)
     print(idx1, idx2)
-    main(1000, True, 10, idx1, str(label1))
-
+    main(1000, True, 4, "none", "logs", idx1, idx2)
+'''

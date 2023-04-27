@@ -123,6 +123,7 @@ class Agent2:
 
         self.vectors1 = dict()
         self.vectors2 = dict()
+        self.beta = 0.8
     
     def random_walk(self):
         if (random.uniform(0, 1) < 0.7):
@@ -207,22 +208,20 @@ class Agent2:
         weighted_numerator = np.zeros(self.vector1.shape)
         for agent in self.vectors1:
             weighted_numerator += self.vectors1[agent] ** 2
-        weighted_numerator += self.vector1
         weighted_denominator = np.zeros(self.vector1.shape)
         for agent in self.vectors1:
             weighted_denominator += self.vectors1[agent]
         weighted_denominator += 1
         
-        return weighted_numerator / weighted_denominator
+        return ((1 - self.beta) * weighted_numerator / weighted_denominator) + (self.beta * self.vector1)
     
     def get_average_vector2(self):
         weighted_numerator = np.zeros(self.vector2.shape)
         for agent in self.vectors2:
             weighted_numerator += self.vectors2[agent] ** 2
-        weighted_numerator += self.vector2
         weighted_denominator = np.zeros(self.vector2.shape)
         for agent in self.vectors2:
             weighted_denominator += self.vectors2[agent]
         weighted_denominator += 1
         
-        return weighted_numerator / weighted_denominator
+        return ((1 - self.beta) * weighted_numerator / weighted_denominator) + (self.beta * self.vector2)
