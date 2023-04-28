@@ -368,7 +368,7 @@ def main(steps, visualise, n_agents=2, idx1=1, idx2=6, digit1=0, digit2=1, decay
                                 + [["Agent {}".format(i), "Percentage Explored"] + percentages_explored[i] for i in range(n_agents)]
                                 + [["Overhead"] + average_communication_overhead])
         '''
-        with open(log_dir + "/accuracies.csv", "w") as f:
+        with open("scenario3tuning/accuracies.csv", "w") as f:
             writer = csv.writer(f)
             writer.writerows([["Data Indexes", idx1, idx2],
                               ["Alpha", alpha],
@@ -376,13 +376,13 @@ def main(steps, visualise, n_agents=2, idx1=1, idx2=6, digit1=0, digit2=1, decay
                               ["Theta_Max", starting_confidence]]
                                 + [["Agent {}".format(i), "MSE"] + mse_scores[i] for i in range(n_agents)])
             
-        with open("scenario2proper/baseline/decisions.csv", "a") as f:
+        with open("scenario3tuning/baseline/decisions.csv", "a") as f:
             data = [[decisions[k] for k in range(0, n_agents)] for decisions in time_decisions]
             writer = csv.writer(f)
             writer.writerow(["n", n_agents, digit1, digit2])
             writer.writerows(data)
 
-        with open("scenario2proper/mask/decisions.csv", "a") as f:
+        with open("scenario3tuning/mask/decisions.csv", "a") as f:
             data = [[decisions[k] for k in range(0, n_agents)] for decisions in time_decisions2]
             writer = csv.writer(f)
             writer.writerow(["n", n_agents, digit1, digit2])
