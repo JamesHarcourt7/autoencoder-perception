@@ -1,16 +1,14 @@
 # Dynamic environment
 
 import numpy as np
-import matplotlib.pyplot as plt
 import pygame
-import sys
 import os
 import datetime
 from utils import normalization
-from keras.datasets import mnist
 import keras
 import csv
 from skimage.metrics import structural_similarity as ssim
+from load_mnist import load_data as load_mnist
 
 from dynamicagent import DynamicAgent2 as Agent
 
@@ -39,7 +37,7 @@ def accuracy(truth, prediction):
 
 def main(steps, visualise, n_agents=2, idx1=1, idx2=6, digit1=0, digit2=1, decay=0.01, beta=0.8, starting_confidence=0.2):
     # Create the environment
-    (data_x, _), _ = mnist.load_data()
+    (data_x, _), _ = load_mnist()
     data_x = np.reshape(np.asarray(data_x), [60000, 784]).astype(float)
     norm_data, _ = normalization(data_x)
     norm_data_x = np.nan_to_num(norm_data, 0)
@@ -256,11 +254,7 @@ def main(steps, visualise, n_agents=2, idx1=1, idx2=6, digit1=0, digit2=1, decay
     else:
         # Run the agent in the environment
         mse_scores = {i : [] for i in range(n_agents)}
-
-        # Create new log directory
-        if log_dir is None:
-            log_dir = "logs/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S") + "/"
-            os.makedirs(log_dir)
+        mse_scores2 = {i : [] for i in range(n_agents)}
 
         # Run the agents in the environment
         for step in range(steps):
@@ -346,7 +340,9 @@ def main(steps, visualise, n_agents=2, idx1=1, idx2=6, digit1=0, digit2=1, decay
                 decisions2[i] = decision2
 
                 mse_score, _, _ = accuracy(env.reshape(784), prediction.reshape(784))
+                mse_score2, _, _ = accuracy(env.reshape(784), prediction2.reshape(784))
                 mse_scores[i].append(mse_score)
+                mse_scores2[i].append(mse_score2)
             
             time_decisions.append(decisions.copy())
             time_decisions2.append(decisions2.copy())
@@ -367,16 +363,21 @@ def main(steps, visualise, n_agents=2, idx1=1, idx2=6, digit1=0, digit2=1, decay
                                 + [["Agent {}".format(i), "SSIM"] + ssim_scores[i] for i in range(n_agents)]
                                 + [["Agent {}".format(i), "Percentage Explored"] + percentages_explored[i] for i in range(n_agents)]
                                 + [["Overhead"] + average_communication_overhead])
+
         '''
-        with open("scenario3tuning/accuracies.csv", "w") as f:
+        with open("scenario3proper/baseline/accuracies.csv", "a") as f:
             writer = csv.writer(f)
             writer.writerows([["Data Indexes", idx1, idx2],
-                              ["Alpha", alpha],
-                              ["Beta", beta],
-                              ["Theta_Max", starting_confidence]]
+                              ["n", n_agents]]
                                 + [["Agent {}".format(i), "MSE"] + mse_scores[i] for i in range(n_agents)])
             
-        with open("scenario3tuning/baseline/decisions.csv", "a") as f:
+        with open("scenario3proper/mask/accuracies.csv", "a") as f:
+            writer = csv.writer(f)
+            writer.writerows([["Data Indexes", idx1, idx2],
+                              ["n", n_agents]]
+                                + [["Agent {}".format(i), "MSE"] + mse_scores2[i] for i in range(n_agents)])
+            
+        with open("scenario3proper/baseline/decisions.csv", "a") as f:
             data = [[decisions[k] for k in range(0, n_agents)] for decisions in time_decisions]
             writer = csv.writer(f)
             writer.writerow(["n", n_agents, digit1, digit2])
@@ -390,17 +391,17 @@ def main(steps, visualise, n_agents=2, idx1=1, idx2=6, digit1=0, digit2=1, decay
 
 '''
 if __name__ == '__main__':
-    (X_train, y_train), (X_test, y_test) = mnist.load_data()
+    (X_train, y_train), (X_test, y_test) = load_mnist()
     label1 = 0
     label2 = 1
     idx1 = np.random.choice(np.where(y_train == label1)[0], 1)
     idx2 = np.random.choice(np.where(y_train == label2)[0], 1)
     main(1000, True, 40, idx1, idx2, label1, label2, 0.02, 0.8, 0.2)
 '''
-
+'''
 if __name__ == '__main__':
     # Tuning alpha, beta and theta
-    (X_train, y_train), (X_test, y_test) = mnist.load_data()
+    (X_train, y_train), (X_test, y_test) = load_mnist()
     label1 = 0
     label2 = 1
     idx1 = 1
@@ -408,5 +409,13 @@ if __name__ == '__main__':
     for alpha in [0.01, 0.02, 0.05]:
         for beta in [0.4, 0.6, 0.8]:
             for theta_max in [0.4, 0.6, 0.8]:
-                main(1000, True, 10, idx1, idx2, label1, label2, alpha, beta, theta_max)
+                main(1000, False, 10, idx1, idx2, label1, label2, alpha, beta, theta_max)
+'''
+if __name__ == '__main__':
+    (X_train, y_train), (X_test, y_test) = load_mnist()
+    label1 = 0
+    label2 = 1
+    idx1 = 1
+    idx2 = 6
+    main(1000, False, 40, idx1, idx2, label1, label2, 0.02, 0.8, 0.2)
 

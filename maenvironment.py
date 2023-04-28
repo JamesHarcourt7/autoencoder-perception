@@ -412,7 +412,7 @@ if __name__ == "__main__":
 
 '''
 if __name__ == '__main__':
-    (X_train, y_train), (X_test, y_test) = mnist.load_data()
+    (X_train, y_train), (X_test, y_test) = load_mnist()
     label1 = np.random.choice(np.arange(10), 1)
     idx1 = np.random.choice(np.where(y_train == label1)[0], 1)
     idx2 = np.random.choice(np.where(y_train != label1)[0], 1)
