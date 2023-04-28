@@ -1,17 +1,18 @@
 # Dynamic environment
 
 import numpy as np
+import matplotlib.pyplot as plt
 import pygame
+import sys
 import os
+import datetime
 from utils import normalization
 from keras.datasets import mnist
 import keras
 import csv
 from skimage.metrics import structural_similarity as ssim
-import time
-from load_mnist import load_data as load_mnist
 
-from agent import Agent2 as Agent
+from dynamicagent import DynamicAgent2 as Agent
 
 
 '''
@@ -36,9 +37,9 @@ def accuracy(truth, prediction):
     return mse_score, psnr_score, ssim_score
 
 
-def main(steps, visualise, n_agents=2, idx1=1, digit="0"):
+def main(steps, visualise, n_agents=2, idx1=1, idx2=6, digit1=0, digit2=1, decay=0.01, beta=0.8, starting_confidence=0.2):
     # Create the environment
-    (data_x, _), _ = load_mnist()
+    (data_x, _), _ = mnist.load_data()
     data_x = np.reshape(np.asarray(data_x), [60000, 784]).astype(float)
     norm_data, _ = normalization(data_x)
     norm_data_x = np.nan_to_num(norm_data, 0)
@@ -63,7 +64,7 @@ def main(steps, visualise, n_agents=2, idx1=1, digit="0"):
 
     # Create agents in random positions
     size = 28
-    agents = [Agent((np.random.randint(1, size - 1), np.random.randint(1, size - 1)), (size, size)) for _ in range(n_agents)]
+    agents = [Agent((np.random.randint(1, size - 1), np.random.randint(1, size - 1)), (size, size), decay, beta, starting_confidence) for _ in range(n_agents)]
 
     if visualise:
         pygame.init()
@@ -73,6 +74,11 @@ def main(steps, visualise, n_agents=2, idx1=1, digit="0"):
 
         # Run the agents in the environment
         for step in range(steps):
+            if step == 500:
+                data_index = idx2
+                env = norm_data_x[data_index]
+                env_square = env.reshape(28, 28)
+                tenv_square = env_square.T
 
             clock.tick(3)
             for event in pygame.event.get():
@@ -94,6 +100,7 @@ def main(steps, visualise, n_agents=2, idx1=1, digit="0"):
             for i in range(n_agents):
                 agent = agents[i]
                 pos = agent.get_position()
+                agent.update_confidence()
                 
                 measurements = env_square[pos[0]-1:pos[0]+2, pos[1]-1:pos[1]+2]
 
@@ -118,7 +125,7 @@ def main(steps, visualise, n_agents=2, idx1=1, digit="0"):
                             agents[j].receive_vector1(vector_to_send1, i)
                             agents[j].receive_vector2(vector_to_send2, i)
                             communications.append((i, j))
-
+            
             # receive information
             for i in range(n_agents):
                 agent = agents[i]
@@ -200,7 +207,6 @@ def main(steps, visualise, n_agents=2, idx1=1, digit="0"):
                             pygame.draw.rect(screen, (colour * modifier, colour, colour * modifier), (i*10+x_offset + 560, j*10+280, 10, 10))
             
             time_decisions.append(decisions.copy())
-            time_decisions2.append(decisions2.copy())
 
             # Update global prediction
             average_prediction /= n_agents
@@ -249,16 +255,29 @@ def main(steps, visualise, n_agents=2, idx1=1, digit="0"):
             pygame.display.update()
     else:
         # Run the agent in the environment
+        mse_scores = {i : [] for i in range(n_agents)}
+
+        # Create new log directory
+        if log_dir is None:
+            log_dir = "logs/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S") + "/"
+            os.makedirs(log_dir)
 
         # Run the agents in the environment
         for step in range(steps):
+            if step == 500:
+                data_index = idx2
+                env = norm_data_x[data_index]
+                env_square = env.reshape(28, 28)
+                tenv_square = env_square.T
+                
             global_mask = np.zeros((28, 28))
-            communications = list()
+            average_prediction = None
             
             # observe and send information
             for i in range(n_agents):
                 agent = agents[i]
                 pos = agent.get_position()
+                agent.update_confidence()
                 
                 measurements = env_square[pos[0]-1:pos[0]+2, pos[1]-1:pos[1]+2]
 
@@ -282,8 +301,7 @@ def main(steps, visualise, n_agents=2, idx1=1, digit="0"):
                         if distance <= communication_radius:
                             agents[j].receive_vector1(vector_to_send1, i)
                             agents[j].receive_vector2(vector_to_send2, i)
-                            communications.append((i, j))
-
+            
             # receive information
             for i in range(n_agents):
                 agent = agents[i]
@@ -297,7 +315,7 @@ def main(steps, visualise, n_agents=2, idx1=1, digit="0"):
                     # Average with agent's own vector
                     agent.add_vector2(vec, j)
             
-             # predict
+            # predict
             for i in range(n_agents):
                 agent = agents[i]
                 x_mb = agent.get_map().reshape(1, 28, 28, 1)
@@ -327,6 +345,8 @@ def main(steps, visualise, n_agents=2, idx1=1, digit="0"):
                     decision2 = -1
                 decisions2[i] = decision2
 
+                mse_score, _, _ = accuracy(env.reshape(784), prediction.reshape(784))
+                mse_scores[i].append(mse_score)
             
             time_decisions.append(decisions.copy())
             time_decisions2.append(decisions2.copy())
@@ -348,74 +368,45 @@ def main(steps, visualise, n_agents=2, idx1=1, digit="0"):
                                 + [["Agent {}".format(i), "Percentage Explored"] + percentages_explored[i] for i in range(n_agents)]
                                 + [["Overhead"] + average_communication_overhead])
         '''
+        with open(log_dir + "/accuracies.csv", "w") as f:
+            writer = csv.writer(f)
+            writer.writerows([["Data Indexes", idx1, idx2],
+                              ["Alpha", alpha],
+                              ["Beta", beta],
+                              ["Theta_Max", starting_confidence]]
+                                + [["Agent {}".format(i), "MSE"] + mse_scores[i] for i in range(n_agents)])
             
         with open("scenario2proper/baseline/decisions.csv", "a") as f:
             data = [[decisions[k] for k in range(0, n_agents)] for decisions in time_decisions]
             writer = csv.writer(f)
-            writer.writerow(["n", n_agents, digit])
+            writer.writerow(["n", n_agents, digit1, digit2])
             writer.writerows(data)
 
         with open("scenario2proper/mask/decisions.csv", "a") as f:
             data = [[decisions[k] for k in range(0, n_agents)] for decisions in time_decisions2]
             writer = csv.writer(f)
-            writer.writerow(["n", n_agents, digit])
+            writer.writerow(["n", n_agents, digit1, digit2])
             writer.writerows(data)
-
-
-'''
-if __name__ == "__main__":
-    visualise = False
-    output_dir = None
-    model = "none"
-    n_agents = 2
-    if len(sys.argv) > 1:
-        visualise = sys.argv[1] == "visualise"
-    if len(sys.argv) > 2:
-        n_agents = int(sys.argv[2])
-    if len(sys.argv) > 3:
-        model = sys.argv[3]
-    if len(sys.argv) > 4:
-        output_dir = sys.argv[4]
-    main(1000, visualise, n_agents, model, output_dir)
-'''
-'''
-if __name__ == "__main__":
-    (X_train, y_train), (X_test, y_test) = mnist.load_data()
-    output_dir = "beta_tests"
-    idx1 = 1
-    idx2 = 6
-    model = 'mask'
-    for _ in range(10):
-        for decay in [0.01, 0.02, 0.05]:
-            for starting_confidence in [0.2, 0.4, 0.6, 0.8]:
-                for beta in [0.2, 0.4, 0.6, 0.8]:
-                    for x in range(10):
-                        # make new output directory
-                        out = output_dir + "/" + str(starting_confidence).replace('.', '') + '_' + str(beta).replace('.', '') + '_' + str(decay).replace('.', '') + "_" + str(idx1) + "_" + str(idx2) + "_" + str(x)
-                        os.makedirs(out)
-
-                        main(1000, False, 4, model, out, idx1, idx2, decay, beta, starting_confidence)
-'''
-
-'''
-if __name__ == "__main__":
-    (X_train, y_train), (X_test, y_test) = load_mnist()
-    start = time.time()
-    for n in range(0, 51, 10):
-        if n == 0:
-            n = 1
-        for digit in range(10):
-            for _ in range(5):
-                idx = np.where(y_train == digit)[0][0]
-                print(time.time() - start, n, digit, idx)
-                main(1000, False, n, idx, str(digit))
 
 '''
 if __name__ == '__main__':
     (X_train, y_train), (X_test, y_test) = mnist.load_data()
-    label1 = np.random.choice(np.arange(10), 1)
+    label1 = 0
+    label2 = 1
     idx1 = np.random.choice(np.where(y_train == label1)[0], 1)
-    idx2 = np.random.choice(np.where(y_train != label1)[0], 1)
-    print(idx1, idx2)
-    main(1000, True, 40, idx1, str(label1))
+    idx2 = np.random.choice(np.where(y_train == label2)[0], 1)
+    main(1000, True, 40, idx1, idx2, label1, label2, 0.02, 0.8, 0.2)
+'''
+
+if __name__ == '__main__':
+    # Tuning alpha, beta and theta
+    (X_train, y_train), (X_test, y_test) = mnist.load_data()
+    label1 = 0
+    label2 = 1
+    idx1 = 1
+    idx2 = 6
+    for alpha in [0.01, 0.02, 0.05]:
+        for beta in [0.4, 0.6, 0.8]:
+            for theta_max in [0.4, 0.6, 0.8]:
+                main(1000, True, 10, idx1, idx2, label1, label2, alpha, beta, theta_max)
 

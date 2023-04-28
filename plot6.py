@@ -7,7 +7,7 @@ n_map1 = dict()
 n_map2 = dict()
 count = 0
 
-threshold = 0.9
+threshold = 0.8
 
 with open('scenario2proper2/baseline/decisions.csv', 'r') as file:
     reader = csv.reader(file)
@@ -75,7 +75,7 @@ with open('scenario2proper2/mask/decisions.csv', 'r') as file:
                 if j == 999:
                     n_map2[n].append(1000)
 
-plt.figure(figsize=(10, 10))
+plt.figure(figsize=(7, 7))
 print(count)
 
 for n in n_map1:
@@ -99,7 +99,6 @@ ticks = np.array(ticks)
 
 plt.ylabel('Time (Steps)')
 plt.xlabel('Number of Agents')
-plt.title('Time to {}% Consensus for Baseline and Autoencoder (10 digits, 5 repeats each)'.format(threshold*100))
 plt.xticks(ticks)
 handles, labels = plt.gca().get_legend_handles_labels()
 by_label = dict(zip(labels, handles))
