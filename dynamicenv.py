@@ -3,7 +3,6 @@
 import numpy as np
 import pygame
 import os
-import datetime
 from utils import normalization
 import keras
 import csv
@@ -383,7 +382,7 @@ def main(steps, visualise, n_agents=2, idx1=1, idx2=6, digit1=0, digit2=1, decay
             writer.writerow(["n", n_agents, digit1, digit2])
             writer.writerows(data)
 
-        with open("scenario3tuning/mask/decisions.csv", "a") as f:
+        with open("scenario3proper/mask/decisions.csv", "a") as f:
             data = [[decisions[k] for k in range(0, n_agents)] for decisions in time_decisions2]
             writer = csv.writer(f)
             writer.writerow(["n", n_agents, digit1, digit2])
@@ -411,11 +410,26 @@ if __name__ == '__main__':
             for theta_max in [0.4, 0.6, 0.8]:
                 main(1000, False, 10, idx1, idx2, label1, label2, alpha, beta, theta_max)
 '''
+'''
 if __name__ == '__main__':
     (X_train, y_train), (X_test, y_test) = load_mnist()
     label1 = 0
     label2 = 1
     idx1 = 1
     idx2 = 6
-    main(1000, False, 40, idx1, idx2, label1, label2, 0.02, 0.8, 0.2)
+    main(1000, False, 40, idx1, idx2, label1, label2, 0.01, 0.6, 0.6)
+'''
+
+if __name__ == "__main__":
+    label1 = 0
+    label2 = 1
+    idx1 = 1
+    idx2 = 6
+    for n in range(10, 51, 10):
+        for _ in range(5):
+            main(1000, False, n, idx1, idx2, label1, label2, 0.01, 0.6, 0.6)
+        
+        for _ in range(5):
+            main(1000, False, n, idx2, idx1, label2, label1, 0.01, 0.6, 0.6)
+        
 
