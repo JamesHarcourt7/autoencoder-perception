@@ -146,9 +146,8 @@ for digit in models:
 
 # plot the mean and std dev of the accuracies and explorations for each digit
 for digit in models:
-    plt.figure(figsize=(20, 5))
+    plt.figure(figsize=(5, 5))
 
-    plt.subplot(1, 4, 1)
     for model in models[digit]:
         #model_mean_accuracies = np.mean([entry.accuracies for entry in models[digit][model]], axis=0)
         model_mean_mse = np.mean([entry.mse for entry in models[digit][model]], axis=0)
@@ -160,10 +159,12 @@ for digit in models:
     plt.legend(loc='upper right')
     plt.xlabel("Time (steps)")
     plt.ylabel("MSE")
-    plt.title("Comparison of MSE")
     plt.ylim(min_mse, max_mse)
+    plt.xlim(0, 1000)
 
-    plt.subplot(1, 4, 2)
+    plt.savefig("digit_" + str(digit) + "_all_mse.png")
+
+    plt.figure(figsize=(5, 5))
     for model in models[digit]:
         model_mean_psnr = np.mean([entry.psnr for entry in models[digit][model]], axis=0)
         model_std_dev_psnr = np.std([entry.psnr for entry in models[digit][model]], axis=0)
@@ -174,10 +175,12 @@ for digit in models:
     plt.legend(loc='upper left')
     plt.xlabel("Time (steps)")
     plt.ylabel("PSNR")
-    plt.title("Comparison of PSNR")
     plt.ylim(min_psnr, max_psnr)
+    plt.xlim(0, 1000)
 
-    plt.subplot(1, 4, 3)
+    plt.savefig("digit_" + str(digit) + "_all_psnr.png")
+
+    plt.figure(figsize=(5, 5))
     for model in models[digit]:
         model_mean_ssim = np.mean([entry.ssim for entry in models[digit][model]], axis=0)
         model_std_dev_ssim = np.std([entry.ssim for entry in models[digit][model]], axis=0)
@@ -188,10 +191,12 @@ for digit in models:
     plt.legend(loc='lower right')
     plt.xlabel("Time (steps)")
     plt.ylabel("SSIM")
-    plt.title("Comparison of SSIM")
     plt.ylim(min_ssim, max_ssim)
+    plt.xlim(0, 1000)
 
-    plt.subplot(1, 4, 4)
+    plt.savefig("digit_" + str(digit) + "_all_ssim.png")
+
+    plt.figure(figsize=(5, 5))
     for model in models[digit]:
         model_mean_explorations = np.mean([entry.explorations for entry in models[digit][model]], axis=0)
         model_std_dev_explorations = np.std([entry.explorations for entry in models[digit][model]], axis=0)
@@ -202,7 +207,7 @@ for digit in models:
     plt.legend(loc='upper left')
     plt.xlabel("Time (steps)")
     plt.ylabel("Percentage Explored")
-    plt.title("Percentage Explored")
     plt.ylim(0, 100)
+    plt.xlim(0, 1000)
 
-    plt.savefig("digit_" + str(digit) + "_all.png")
+    plt.savefig("digit_" + str(digit) + "_all_explore.png")

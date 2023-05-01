@@ -4,7 +4,7 @@ import numpy as np
 
 from scipy.interpolate import make_interp_spline, BSpline
 
-plt.figure(figsize=(8, 8))
+plt.figure(figsize=(7, 7))
 
 def savitzky_golay(y, window_size, order, deriv=0, rate=1):
     # https://scipy.github.io/old-wiki/pages/Cookbook/SavitzkyGolay
@@ -56,7 +56,6 @@ for label in map:
 
 plt.ylabel('Loss (BCE)')
 plt.xlabel('Time (epochs)')
-plt.title('Training Losses for Autoencoder Variants')
 plt.legend()
 plt.savefig('losses.png')
 

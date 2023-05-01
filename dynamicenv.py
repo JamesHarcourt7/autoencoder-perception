@@ -6,6 +6,7 @@ import os
 from utils import normalization
 import keras
 import csv
+import time
 from skimage.metrics import structural_similarity as ssim
 from load_mnist import load_data as load_mnist
 
@@ -91,6 +92,7 @@ def main(steps, visualise, n_agents=2, idx1=1, idx2=6, digit1=0, digit2=1, decay
 
             global_mask = np.zeros((28, 28))
             average_prediction = None
+            average_prediction2 = None
             communications = list()
             
             # observe and send information
@@ -169,8 +171,10 @@ def main(steps, visualise, n_agents=2, idx1=1, idx2=6, digit1=0, digit2=1, decay
                 # Update global prediction
                 if average_prediction is None:
                     average_prediction = prediction
+                    average_prediction2 = prediction2
                 else:
                     average_prediction = average_prediction + prediction
+                    average_prediction2 = average_prediction2 + prediction2
 
                 # Update global mask
                 square_mask = m_mb.reshape(28, 28)
@@ -207,6 +211,7 @@ def main(steps, visualise, n_agents=2, idx1=1, idx2=6, digit1=0, digit2=1, decay
 
             # Update global prediction
             average_prediction /= n_agents
+            average_prediction2 /= n_agents
 
             # Global observation 
             m_square = global_mask.reshape(28, 28).T
@@ -410,14 +415,15 @@ if __name__ == '__main__':
             for theta_max in [0.4, 0.6, 0.8]:
                 main(1000, False, 10, idx1, idx2, label1, label2, alpha, beta, theta_max)
 '''
-'''
+
 if __name__ == '__main__':
     (X_train, y_train), (X_test, y_test) = load_mnist()
     label1 = 0
     label2 = 1
     idx1 = 1
     idx2 = 6
-    main(1000, False, 40, idx1, idx2, label1, label2, 0.01, 0.6, 0.6)
+    main(1000, True, 40, idx1, idx2, label1, label2, 0.01, 0.6, 0.6)
+
 '''
 
 if __name__ == "__main__":
@@ -430,6 +436,5 @@ if __name__ == "__main__":
             main(1000, False, n, idx1, idx2, label1, label2, 0.01, 0.6, 0.6)
         
         for _ in range(5):
-            main(1000, False, n, idx2, idx1, label2, label1, 0.01, 0.6, 0.6)
-        
-
+            main(1000, False, n, idx2, idx1, label2, label1, 0.01, 0.6, 0.6) 
+'''

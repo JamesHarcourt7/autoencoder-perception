@@ -349,13 +349,13 @@ def main(steps, visualise, n_agents=2, idx1=1, digit="0"):
                                 + [["Overhead"] + average_communication_overhead])
         '''
             
-        with open("scenario2proper/baseline/decisions.csv", "a") as f:
+        with open("scenario2propernope/baseline/decisions.csv", "a") as f:
             data = [[decisions[k] for k in range(0, n_agents)] for decisions in time_decisions]
             writer = csv.writer(f)
             writer.writerow(["n", n_agents, digit])
             writer.writerows(data)
 
-        with open("scenario2proper/mask/decisions.csv", "a") as f:
+        with open("scenario2propernope/mask/decisions.csv", "a") as f:
             data = [[decisions[k] for k in range(0, n_agents)] for decisions in time_decisions2]
             writer = csv.writer(f)
             writer.writerow(["n", n_agents, digit])
@@ -410,7 +410,7 @@ if __name__ == "__main__":
                 print(time.time() - start, n, digit, idx)
                 main(1000, False, n, idx, str(digit))
 
-'''
+
 if __name__ == '__main__':
     (X_train, y_train), (X_test, y_test) = load_mnist()
     label1 = np.random.choice(np.arange(10), 1)
@@ -418,4 +418,14 @@ if __name__ == '__main__':
     idx2 = np.random.choice(np.where(y_train != label1)[0], 1)
     print(idx1, idx2)
     main(1000, True, 40, idx1, str(label1))
+'''
+
+if __name__ == '__main__':
+    for n in range(0, 51, 10):
+        if n == 0:
+            n = 1
+        for _ in range(5):
+            start = time.time()
+            main(1000, False, n, 1, '0')
+            print(time.time() - start, n)
 

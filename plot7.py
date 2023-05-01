@@ -5,17 +5,17 @@ import numpy as np
 
 class Entry:
 
-    def __init__(self, alpha, beta, theta_max, mse):
+    def __init__(self, alpha, beta, theta_initial, mse):
         self.alpha = alpha
         self.beta = beta
-        self.theta_max = theta_max
+        self.theta_initial = theta_initial
         self.mse = mse
 
 '''
 for alpha in [0.01, 0.02, 0.05]:
         for beta in [0.4, 0.6, 0.8]:
-            for theta_max in [0.4, 0.6, 0.8]:
-                main(1000, False, 10, idx1, idx2, label1, label2, alpha, beta, theta_max)
+            for theta_initial in [0.4, 0.6, 0.8]:
+                main(1000, False, 10, idx1, idx2, label1, label2, alpha, beta, theta_initial)
 '''
 
 
@@ -79,7 +79,7 @@ with open('scenario3tune/mask/accuracies.csv', 'r') as f:
 
     for x, alpha in enumerate([0.01, 0.02, 0.05]):
         for y, beta in enumerate([0.4, 0.6, 0.8]):
-            for z, theta_max in enumerate([0.4, 0.6, 0.8]):
+            for z, theta_initial in enumerate([0.4, 0.6, 0.8]):
                 index = ((x * 9) + (y * 3) + z) * 12
 
                 mse_values = list()
@@ -93,13 +93,13 @@ with open('scenario3tune/mask/accuracies.csv', 'r') as f:
                 
                 mse_values = np.array(mse_values)
                 mean_mse = np.mean(mse_values, axis=0)
-                entry = Entry(alpha, beta, theta_max, mean_mse)
+                entry = Entry(alpha, beta, theta_initial, mean_mse)
                 entries.append(entry)
 
                 
     for x, alpha in enumerate([0.01, 0.02, 0.05]):
         for y, beta in enumerate([0.4, 0.6, 0.8]):
-            for z, theta_max in enumerate([0.4, 0.6, 0.8]):
+            for z, theta_initial in enumerate([0.4, 0.6, 0.8]):
                 for i in range(4):
                     index = (27 * 12) + (((x * 27) + (y * 9) + (z * 3) + i) * 12)
 
@@ -113,21 +113,21 @@ with open('scenario3tune/mask/accuracies.csv', 'r') as f:
                     
                     mse_values = np.array(mse_values)
                     mean_mse = np.mean(mse_values, axis=0)
-                    entry = Entry(alpha, beta, theta_max, mean_mse)
+                    entry = Entry(alpha, beta, theta_initial, mean_mse)
                     entries.append(entry)
     
     print(len(entries))
     
-    # Group entries by alpha, beta, theta_max
+    # Group entries by alpha, beta, theta_initial
     abt = dict()
     for entry in entries:
-        key = "alpha={}, beta={}, theta_max={}".format(entry.alpha, entry.beta, entry.theta_max)
+        key = "alpha={}, beta={}, theta_initial={}".format(entry.alpha, entry.beta, entry.theta_initial)
         if key not in abt:
             abt[key] = list()
         abt[key].append(entry)
 
 
-# plot the means of mse for each alpha, beta, theta_max
+# plot the means of mse for each alpha, beta, theta_initial
 plt.figure(figsize=(13, 13))
 for key in abt:
     entries = np.array([e.mse for e in abt[key]])
@@ -137,6 +137,7 @@ for key in abt:
 plt.legend(loc='upper right')
 plt.xlabel("Time (steps)")
 plt.ylabel("MSE")
+plt.xlim(0, 1000)
 
 plt.savefig("scenario3_tuning.png")
 
@@ -163,6 +164,7 @@ for key in a:
 plt.legend(loc='upper right')
 plt.xlabel("Time (steps)")
 plt.ylabel("MSE")
+plt.xlim(0, 1000)
 
 plt.savefig("scenario3_tuning_alpha.png")
 
@@ -189,34 +191,37 @@ for key in b:
 plt.legend(loc='upper right')
 plt.xlabel("Time (steps)")
 plt.ylabel("MSE")
+plt.xlim(0, 1000)
+
 
 plt.savefig("scenario3_tuning_beta.png")
 
-# plot the means of mse for each theta_max
+# plot the means of mse for each theta_initial
 plt.figure(figsize=(10, 10))
 tm = dict()
 
 for key in abt:
     entries = abt[key]
     
-    # group by theta_max
+    # group by theta_initial
     for entry in entries:
-        key = entry.theta_max
+        key = entry.theta_initial
         if key not in tm:
             tm[key] = list()
         tm[key].append(entry)
     
 for key in tm:
     entries = np.array([e.mse for e in tm[key]])
-    plt.plot(np.mean(entries, axis=0), label="theta_max={}".format(key))
+    plt.plot(np.mean(entries, axis=0), label="theta_initial={}".format(key))
     std = np.std(entries, axis=0)
     plt.fill_between(range(len(std)), np.mean(entries, axis=0) - std, np.mean(entries, axis=0) + std, alpha=0.2)
 
 plt.legend(loc='upper right')
 plt.xlabel("Time (steps)")
 plt.ylabel("MSE")
+plt.xlim(0, 1000)
 
-plt.savefig("scenario3_tuning_theta_max.png")
+plt.savefig("scenario3_tuning_theta_initial.png")
 
 # plot the means of mse for each alpha, beta
 plt.figure(figsize=(10, 10))
@@ -239,19 +244,20 @@ for key in ab:
 plt.legend(loc='upper right')
 plt.xlabel("Time (steps)")
 plt.ylabel("MSE")
+plt.xlim(0, 1000)
 
 plt.savefig("scenario3_tuning_alpha_beta.png")
 
-# plot the means of mse for each alpha, theta_max
+# plot the means of mse for each alpha, theta_initial
 plt.figure(figsize=(10, 10))
 at = dict()
 
 for key in abt:
     entries = abt[key]
 
-    # group by alpha, theta_max
+    # group by alpha, theta_initial
     for entry in entries:
-        key = "alpha={}, theta_max={}".format(entry.alpha, entry.theta_max)
+        key = "alpha={}, theta_initial={}".format(entry.alpha, entry.theta_initial)
         if key not in at:
             at[key] = list()
         at[key].append(entry)
@@ -263,19 +269,20 @@ for key in at:
 plt.legend(loc='upper right')
 plt.xlabel("Time (steps)")
 plt.ylabel("MSE")
+plt.xlim(0, 1000)
 
-plt.savefig("scenario3_tuning_alpha_theta_max.png")
+plt.savefig("scenario3_tuning_alpha_theta_initial.png")
 
-# plot the means of mse for each beta, theta_max
+# plot the means of mse for each beta, theta_initial
 plt.figure(figsize=(10, 10))
 bt = dict()
 
 for key in abt:
     entries = abt[key]
 
-    # group by beta, theta_max
+    # group by beta, theta_initial
     for entry in entries:
-        key = "beta={}, theta_max={}".format(entry.beta, entry.theta_max)
+        key = "beta={}, theta_initial={}".format(entry.beta, entry.theta_initial)
         if key not in bt:
             bt[key] = list()
         bt[key].append(entry)
@@ -287,22 +294,23 @@ for key in bt:
 plt.legend(loc='upper right')
 plt.xlabel("Time (steps)")
 plt.ylabel("MSE")
+plt.xlim(0, 1000)
 
-plt.savefig("scenario3_tuning_beta_theta_max.png")
+plt.savefig("scenario3_tuning_beta_theta_initial.png")
 
-# plot the means of mse for each alpha, beta, theta_max where alpha=0.01
+# plot the means of mse for each alpha, beta, theta_initial where alpha=0.01
 plt.figure(figsize=(10, 10))
 a1 = dict()
 
 for key in abt:
     entries = abt[key]
 
-    # group by alpha, beta, theta_max
+    # group by alpha, beta, theta_initial
     for entry in entries:
         if entry.alpha != 0.01:
             continue
-        
-        key = "alpha={}, beta={}, theta_max={}".format(entry.alpha, entry.beta, entry.theta_max)
+
+        key = "alpha={}, beta={}, theta_initial={}".format(entry.alpha, entry.beta, entry.theta_initial)
         if key not in a1:
             a1[key] = list()
         a1[key].append(entry)
@@ -314,6 +322,7 @@ for key in a1:
 plt.legend(loc='upper right')
 plt.xlabel("Time (steps)")
 plt.ylabel("MSE")
+plt.xlim(0, 1000)
 
 plt.savefig("scenario3_tuning_alpha_0.01.png")
 
