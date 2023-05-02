@@ -25,7 +25,7 @@ def main(steps, visualise, model='none', log_dir=None):
     # Create the environment
     (data_x, _), _ = mnist.load_data()
     data_x = np.reshape(np.asarray(data_x), [60000, 784]).astype(float)
-    norm_data, _ = normalization(data_x)
+    norm_data = normalization(data_x)
     norm_data_x = np.nan_to_num(norm_data, 0)
     data_index = 0
     env = norm_data_x[data_index]

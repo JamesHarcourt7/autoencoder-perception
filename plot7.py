@@ -142,7 +142,7 @@ plt.xlim(0, 1000)
 plt.savefig("scenario3_tuning.png")
 
 # plot the means of mse for each alpha
-plt.figure(figsize=(10, 10))
+plt.figure(figsize=(7, 7))
 a = dict()
 
 for key in abt:
@@ -169,7 +169,7 @@ plt.xlim(0, 1000)
 plt.savefig("scenario3_tuning_alpha.png")
 
 # plot the means of mse for each beta
-plt.figure(figsize=(10, 10))
+plt.figure(figsize=(7, 7))
 b = dict()
 
 for key in abt:
@@ -197,7 +197,7 @@ plt.xlim(0, 1000)
 plt.savefig("scenario3_tuning_beta.png")
 
 # plot the means of mse for each theta_initial
-plt.figure(figsize=(10, 10))
+plt.figure(figsize=(7, 7))
 tm = dict()
 
 for key in abt:
@@ -224,7 +224,7 @@ plt.xlim(0, 1000)
 plt.savefig("scenario3_tuning_theta_initial.png")
 
 # plot the means of mse for each alpha, beta
-plt.figure(figsize=(10, 10))
+plt.figure(figsize=(7, 7))
 ab = dict()
 
 for key in abt:
@@ -249,7 +249,7 @@ plt.xlim(0, 1000)
 plt.savefig("scenario3_tuning_alpha_beta.png")
 
 # plot the means of mse for each alpha, theta_initial
-plt.figure(figsize=(10, 10))
+plt.figure(figsize=(7, 7))
 at = dict()
 
 for key in abt:
@@ -274,7 +274,7 @@ plt.xlim(0, 1000)
 plt.savefig("scenario3_tuning_alpha_theta_initial.png")
 
 # plot the means of mse for each beta, theta_initial
-plt.figure(figsize=(10, 10))
+plt.figure(figsize=(7, 7))
 bt = dict()
 
 for key in abt:
@@ -299,7 +299,7 @@ plt.xlim(0, 1000)
 plt.savefig("scenario3_tuning_beta_theta_initial.png")
 
 # plot the means of mse for each alpha, beta, theta_initial where alpha=0.01
-plt.figure(figsize=(10, 10))
+plt.figure(figsize=(7, 7))
 a1 = dict()
 
 for key in abt:

@@ -40,7 +40,7 @@ def main(steps, visualise, n_agents=2, idx1=1, digit="0"):
     # Create the environment
     (data_x, _), _ = load_mnist()
     data_x = np.reshape(np.asarray(data_x), [60000, 784]).astype(float)
-    norm_data, _ = normalization(data_x)
+    norm_data = normalization(data_x)
     norm_data_x = np.nan_to_num(norm_data, 0)
     data_index = idx1
     env = norm_data_x[data_index]

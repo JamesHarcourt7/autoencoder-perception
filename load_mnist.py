@@ -3,6 +3,8 @@ import numpy
 import operator
 from six.moves import reduce
 
+# Source: idx2numpy/converters.py at master · ivanyu/idx2numpy · GitHub
+
 # Keys are IDX data type codes.
 # Values: (ndarray data type name, name for struct.unpack, size in bytes).
 _DATA_TYPES_IDX = {
@@ -35,7 +37,6 @@ def load_data():
     
     return (train_x, train_y), (test_x, test_y)
 
-# Shamelessly stolen from idx2numpy/converters.py at master · ivanyu/idx2numpy · GitHub
 def convertidx2numpy(f):
     with open(f, 'rb') as inp:
         # Read the "magic number" - 4 bytes.

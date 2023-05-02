@@ -47,7 +47,7 @@ with open('decisions_final.csv', 'r') as file:
                 if j == 499:
                     n_map2[n].append(500)
 
-plt.figure(figsize=(10, 10))
+plt.figure(figsize=(7, 7))
 print(n_map1[10], len(n_map1[10]))
 
 for n in n_map1:

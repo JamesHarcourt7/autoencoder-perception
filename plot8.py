@@ -20,6 +20,9 @@ with open('scenario3proper/baseline/decisions.csv', 'r') as file:
             
             n = int(data[i][1])
 
+            if n == 1:
+                continue
+
             count += 1
             digit1 = data[i][2]
             digit2 = data[i][3]
@@ -67,6 +70,9 @@ with open('scenario3proper/mask/decisions.csv', 'r') as file:
         if data[i][0] == 'n':
 
             n = int(data[i][1])
+
+            if n == 1:
+                continue
 
             count += 1
             digit1 = data[i][2]
@@ -193,7 +199,7 @@ plt.xticks(ticks)
 handles, labels = plt.gca().get_legend_handles_labels()
 by_label = dict(zip(labels, handles))
 plt.legend(by_label.values(), by_label.keys())
-plt.ylim(0, 500)
+plt.ylim(0, 600)
 #plt.yscale('log')
 plt.savefig('scenario3_baseline.png')
 
@@ -218,7 +224,7 @@ plt.xticks(ticks)
 handles, labels = plt.gca().get_legend_handles_labels()
 by_label = dict(zip(labels, handles))
 plt.legend(by_label.values(), by_label.keys())
-plt.ylim(0, 500)
+plt.ylim(0, 600)
 #plt.yscale('log')
 plt.savefig('scenario3_mask.png')
 

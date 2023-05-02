@@ -25,7 +25,7 @@ def main(steps, visualise, model='none', log_dir=None):
     # Create the environment
     (data_x, _), _ = mnist.load_data()
     data_x = np.reshape(np.asarray(data_x), [60000, 784]).astype(float)
-    norm_data, _ = normalization(data_x)
+    norm_data = normalization(data_x)
     norm_data_x = np.nan_to_num(norm_data, 0)
     data_index = 5016
     env = norm_data_x[data_index]
@@ -49,12 +49,15 @@ def main(steps, visualise, model='none', log_dir=None):
 
     if visualise:
         pygame.init()
-        screen = pygame.display.set_mode((1120, 280))
-        pygame.display.set_caption("MNIST")
+        font = pygame.font.SysFont('Comic Sans MS', 24)
+        screen = pygame.display.set_mode((1120, 310))
+        pygame.display.set_caption("DL Augmented Single-Agent Exploration")
         clock = pygame.time.Clock()
 
         # Run the agent in the environment
         for step in range(steps):
+            pygame.display.set_caption("DL Augmented Single-Agent Exploration t={}".format(step))
+
             pos = agent.get_position()
 
             env_square = env.reshape(28, 28)
@@ -90,40 +93,48 @@ def main(steps, visualise, model='none', log_dir=None):
             m_mb = m_mb.reshape(28, 28).T
             prediction = prediction.reshape(28, 28).T
 
-            clock.tick(30)
+            clock.tick(8)
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     exit()
-            screen.fill((0, 0, 0))
+            screen.fill((255, 255, 255))
             x_square = x_mb.reshape(28, 28)
+            text_surface = font.render('Ground Truth', False, (0, 0, 0))
+            screen.blit(text_surface, (0, 0))
             for i in range(len(env_square)):
                 for j in range(len(env_square[0])):
                     colour = env_square[i][j]*255
-                    pygame.draw.rect(screen, (colour, colour, colour), (i*10, j*10, 10, 10))
+                    pygame.draw.rect(screen, (colour, colour, colour), (i*10, j*10 + 30, 10, 10))
+            text_surface = font.render('Observation', False, (0, 0, 0))
+            screen.blit(text_surface, (280, 0))
             for i in range(len(x_square)):
                 for j in range(len(x_square[0])):
                     colour = x_square[i][j]*255
-                    pygame.draw.rect(screen, (colour, colour, colour), (i*10+280, j*10, 10, 10))
+                    pygame.draw.rect(screen, (colour, colour, colour), (i*10+280, j*10 + 30, 10, 10))
             m_square = m_mb.reshape(28, 28)
+            text_surface = font.render('Mask', False, (0, 0, 0))
+            screen.blit(text_surface, (560, 0))
             for i in range(len(m_square)):
                 for j in range(len(m_square[0])):
                     colour = m_square[i][j]*255
-                    pygame.draw.rect(screen, (colour, colour, colour), (i*10+560, j*10, 10, 10))
+                    pygame.draw.rect(screen, (colour, colour, colour), (i*10+560, j*10 + 30, 10, 10))
             p_square = prediction.reshape(28, 28)
+            text_surface = font.render('Prediction', False, (0, 0, 0))
+            screen.blit(text_surface, (840, 0))
             for i in range(len(p_square)):
                 for j in range(len(p_square[0])):
                     colour = p_square[i][j]*255
                     modifier = (m_square[i][j] + 1)/2
-                    pygame.draw.rect(screen, (modifier * colour, colour, modifier * colour), (i*10+840, j*10, 10, 10))
+                    pygame.draw.rect(screen, (modifier * colour, colour, modifier * colour), (i*10+840, j*10 + 30, 10, 10))
             
             # Draw the agent
-            pygame.draw.rect(screen, (255, 0, 0), (pos[1]*10+280, pos[0]*10, 10, 10))
+            pygame.draw.rect(screen, (255, 0, 0), (pos[1]*10+280, pos[0]*10+30, 10, 10))
             # add eyes to agent
-            pygame.draw.circle(screen, (255, 255, 255), (pos[1]*10+280+7, pos[0]*10+2), 2)
-            pygame.draw.circle(screen, (255, 255, 255), (pos[1]*10+280+2, pos[0]*10+2), 2)
-            pygame.draw.circle(screen, (0, 0, 0), (pos[1]*10+280+7, pos[0]*10+2), 1)
-            pygame.draw.circle(screen, (0, 0, 0), (pos[1]*10+280+2, pos[0]*10+2), 1)
+            pygame.draw.circle(screen, (255, 255, 255), (pos[1]*10+280+7, pos[0]*10+32), 2)
+            pygame.draw.circle(screen, (255, 255, 255), (pos[1]*10+280+2, pos[0]*10+32), 2)
+            pygame.draw.circle(screen, (0, 0, 0), (pos[1]*10+280+7, pos[0]*10+32), 1)
+            pygame.draw.circle(screen, (0, 0, 0), (pos[1]*10+280+2, pos[0]*10+32), 1)
             pygame.display.update()
     else:
         # Run the agent in the environment

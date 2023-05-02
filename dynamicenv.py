@@ -4,6 +4,7 @@ import numpy as np
 import pygame
 import os
 from utils import normalization
+from pygame.locals import *
 import keras
 import csv
 import time
@@ -19,7 +20,6 @@ Multiple agents
 - Agents will have to learn to adapt to the new environment
 - Agents will need confidence map instead of mask
 '''
-
 
 agent_colours = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 0), (255, 0, 255), (0, 255, 255), (255, 255, 255)]
 communication_radius = 3
@@ -39,7 +39,7 @@ def main(steps, visualise, n_agents=2, idx1=1, idx2=6, digit1=0, digit2=1, decay
     # Create the environment
     (data_x, _), _ = load_mnist()
     data_x = np.reshape(np.asarray(data_x), [60000, 784]).astype(float)
-    norm_data, _ = normalization(data_x)
+    norm_data = normalization(data_x)
     norm_data_x = np.nan_to_num(norm_data, 0)
     data_index = idx1
     env = norm_data_x[data_index]
@@ -66,12 +66,15 @@ def main(steps, visualise, n_agents=2, idx1=1, idx2=6, digit1=0, digit2=1, decay
 
     if visualise:
         pygame.init()
-        screen = pygame.display.set_mode((1120, 840))
+        pygame.font.init()
+        font = pygame.font.SysFont('Comic Sans MS', 24)
+        screen = pygame.display.set_mode((1120, 930))
         pygame.display.set_caption("DL Augmented Multi-Agent Exploration")
         clock = pygame.time.Clock()
 
         # Run the agents in the environment
         for step in range(steps):
+            pygame.display.set_caption("DL Augmented Multi-Agent Exploration t={}".format(step))
             if step == 500:
                 data_index = idx2
                 env = norm_data_x[data_index]
@@ -83,12 +86,14 @@ def main(steps, visualise, n_agents=2, idx1=1, idx2=6, digit1=0, digit2=1, decay
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     exit()
-            screen.fill((0, 0, 0))
+            screen.fill((255, 255, 255))
 
+            text_surface = font.render('Ground Truth', False, (0, 0, 0))
+            screen.blit(text_surface, (0, 0))
             for i in range(len(tenv_square)):
                 for j in range(len(tenv_square[0])):
                     colour = tenv_square[i][j]*255
-                    pygame.draw.rect(screen, (colour, colour, colour), (i*10, j*10, 10, 10))
+                    pygame.draw.rect(screen, (colour, colour, colour), (i*10, j*10 + 30, 10, 10))
 
             global_mask = np.zeros((28, 28))
             average_prediction = None
@@ -182,30 +187,81 @@ def main(steps, visualise, n_agents=2, idx1=1, idx2=6, digit1=0, digit2=1, decay
 
                 if i < 2:
                     x_offset = 280 * i
-                    agent_colour = agent_colours[i % len(agent_colours)]
+                    agent_colour = agent_colours[i]
                     m_mb = agent.get_mask()
                     m_square = m_mb.reshape(28, 28).T
 
                     p_square = prediction.reshape(28, 28).T
-                    for i in range(len(p_square)):
+                    text_surface = font.render('Baseline Agent {}'.format(i), False, (0, 0, 0))
+                    screen.blit(text_surface, (x_offset + 30, 280 + 30))
+                    for x in range(len(p_square)):
                         for j in range(len(p_square[0])):
-                            colour = p_square[i][j]*255
-                            pygame.draw.rect(screen, (colour, colour, colour), (i*10+x_offset, j*10+280, 10, 10))
+                            colour = p_square[x][j]*255
+                            modifier = (m_square[x][j] + 2) / 3
+                            pygame.draw.rect(screen, (colour, colour * modifier, colour * modifier), (x*10+x_offset, j*10+280 + 60, 10, 10))
 
                     # Draw the agent
-                    pygame.draw.rect(screen, agent_colour, (x_offset, 280, 10, 10))
+                    pygame.draw.rect(screen, agent_colour, (x_offset + 560, 280 + 30, 30, 30))
                     # add eyes to agent
-                    pygame.draw.circle(screen, (255, 255, 255), (x_offset+7, 282), 2)
-                    pygame.draw.circle(screen, (255, 255, 255), (x_offset+2, 282), 2)
-                    pygame.draw.circle(screen, (0, 0, 0), (x_offset+7, 282), 1)
-                    pygame.draw.circle(screen, (0, 0, 0), (x_offset+2, 282), 1)
+                    pygame.draw.circle(screen, (255, 255, 255), (x_offset+21+560, 286 + 30), 6)
+                    pygame.draw.circle(screen, (255, 255, 255), (x_offset+6+560, 286 + 30), 6)
+                    pygame.draw.circle(screen, (0, 0, 0), (x_offset+21+560, 286 + 30), 3)
+                    pygame.draw.circle(screen, (0, 0, 0), (x_offset+6+560, 286 + 30), 3)
 
+                    text_surface = font.render('Decision: {}'.format(decision1), False, (255, 255, 255))
+                    screen.blit(text_surface, (x_offset, 280 + 60))
+
+                    text_surface = font.render('Predictive Agent {}'.format(i), False, (0, 0, 0))
+                    screen.blit(text_surface, (x_offset + 560 + 30, 280 + 30))
                     p_square = prediction2.reshape(28, 28).T
                     for i in range(len(p_square)):
                         for j in range(len(p_square[0])):
                             colour = p_square[i][j]*255
                             modifier = (m_square[i][j] + 1) / 2 
-                            pygame.draw.rect(screen, (colour * modifier, colour, colour * modifier), (i*10+x_offset + 560, j*10+280, 10, 10))
+                            pygame.draw.rect(screen, (colour * modifier, colour, colour * modifier), (i*10+x_offset + 560, j*10+280 + 60, 10, 10))
+
+                    # Draw the agent
+                    pygame.draw.rect(screen, agent_colour, (x_offset, 280 + 30, 30, 30))
+                    # add eyes to agent
+                    pygame.draw.circle(screen, (255, 255, 255), (x_offset+21, 286 + 30), 6)
+                    pygame.draw.circle(screen, (255, 255, 255), (x_offset+6, 286 + 30), 6)
+                    pygame.draw.circle(screen, (0, 0, 0), (x_offset+21, 286 + 30), 3)
+                    pygame.draw.circle(screen, (0, 0, 0), (x_offset+6, 286 + 30), 3)
+
+                    text_surface = font.render('Decision: {}'.format(decision2), False, (255, 255, 255))
+                    screen.blit(text_surface, (x_offset + 560, 280 + 60))
+
+                    text_surface = font.render('Observation', False, (0, 0, 0))
+                    screen.blit(text_surface, (x_offset + 30, 560 + 60))
+                    x_square = x_mb.reshape((28, 28)).T
+                    for i in range(len(x_square)):
+                        for j in range(len(x_square[0])):
+                            colour = x_square[i][j]*255
+                            pygame.draw.rect(screen, (colour, colour, colour), (i*10+x_offset, j*10+560 + 90, 10, 10))
+                    
+                     # Draw the agent
+                    pygame.draw.rect(screen, agent_colour, (x_offset, 560 + 60, 30, 30))
+                    # add eyes to agent
+                    pygame.draw.circle(screen, (255, 255, 255), (x_offset+21, 560 + 6 + 60), 6)
+                    pygame.draw.circle(screen, (255, 255, 255), (x_offset+6, 560 + 6 + 60), 6)
+                    pygame.draw.circle(screen, (0, 0, 0), (x_offset+21, 560 + 6 + 60), 3)
+                    pygame.draw.circle(screen, (0, 0, 0), (x_offset+6, 560 + 6 + 60), 3)
+
+                    text_surface = font.render('Mask', False, (0, 0, 0))
+                    screen.blit(text_surface, (x_offset + 560 + 30, 560 + 60))
+                    x_square = agent.get_confidence().reshape((28, 28)).T
+                    for i in range(len(x_square)):
+                        for j in range(len(x_square[0])):
+                            colour = x_square[i][j]*255
+                            pygame.draw.rect(screen, (colour, colour, colour), (i*10+x_offset + 560, j*10+560 + 90, 10, 10))
+                    
+                    # Draw the agent
+                    pygame.draw.rect(screen, agent_colour, (x_offset + 560, 560 + 60, 30, 30))
+                    # add eyes to agent
+                    pygame.draw.circle(screen, (255, 255, 255), (x_offset+560+21, 560 + 6 + 60), 6)
+                    pygame.draw.circle(screen, (255, 255, 255), (x_offset+560+6, 560 + 6 + 60), 6)
+                    pygame.draw.circle(screen, (0, 0, 0), (x_offset+560+21, 560 + 6 + 60), 3)
+                    pygame.draw.circle(screen, (0, 0, 0), (x_offset+560+6, 560 + 6 + 60), 3)
             
             time_decisions.append(decisions.copy())
 
@@ -216,22 +272,29 @@ def main(steps, visualise, n_agents=2, idx1=1, idx2=6, digit1=0, digit2=1, decay
             # Global observation 
             m_square = global_mask.reshape(28, 28).T
             x_square = tenv_square * m_square
+            text_surface = font.render('Global Observations', False, (0, 0, 0))
+            screen.blit(text_surface, (280, 0))
             for i in range(len(x_square)):
                 for j in range(len(x_square[0])):
                     colour = x_square[i][j]*255
-                    pygame.draw.rect(screen, (colour, colour, colour), (i*10+280, j*10, 10, 10))
+                    pygame.draw.rect(screen, (colour, colour, colour), (i*10+280, j*10 + 30, 10, 10))
             
             for i in range(n_agents):
                 pos = agents[i].get_position()
-                colour = agent_colours[i % len(agent_colours)]
+                if i == 0:
+                    colour = agent_colours[0]
+                elif i == 1:
+                    colour = agent_colours[1]
+                else:
+                    colour = agent_colours[2]
 
                 # Draw the agent
-                pygame.draw.rect(screen, colour, (pos[1]*10+280, pos[0]*10, 10, 10))
+                pygame.draw.rect(screen, colour, (pos[1]*10+280, pos[0]*10 + 30, 10, 10))
                 # add eyes to agent
-                pygame.draw.circle(screen, (255, 255, 255), (pos[1]*10+280+7, pos[0]*10+2), 2)
-                pygame.draw.circle(screen, (255, 255, 255), (pos[1]*10+280+2, pos[0]*10+2), 2)
-                pygame.draw.circle(screen, (0, 0, 0), (pos[1]*10+280+7, pos[0]*10+2), 1)
-                pygame.draw.circle(screen, (0, 0, 0), (pos[1]*10+280+2, pos[0]*10+2), 1)
+                pygame.draw.circle(screen, (255, 255, 255), (pos[1]*10+280+7, pos[0]*10+2 + 30), 2)
+                pygame.draw.circle(screen, (255, 255, 255), (pos[1]*10+280+2, pos[0]*10+2 + 30), 2)
+                pygame.draw.circle(screen, (0, 0, 0), (pos[1]*10+280+7, pos[0]*10+2 + 30), 1)
+                pygame.draw.circle(screen, (0, 0, 0), (pos[1]*10+280+2, pos[0]*10+2 + 30), 1)
 
             # Draw communications
             for i in range(len(communications)):
@@ -239,20 +302,25 @@ def main(steps, visualise, n_agents=2, idx1=1, idx2=6, digit1=0, digit2=1, decay
                 a2 = agents[communications[i][1]]
                 p1 = a1.get_position()
                 p2 = a2.get_position()
-                pygame.draw.line(screen, (255, 255, 255), (p1[1]*10+280+5, p1[0]*10+5), (p2[1]*10+280+5, p2[0]*10+5), 1)
-            
-            # Global mask
-            for i in range(len(m_square)):
-                for j in range(len(m_square[0])):
-                    colour = m_square[i][j]*255
-                    pygame.draw.rect(screen, (colour, colour, colour), (i*10+560, j*10, 10, 10))
+                pygame.draw.line(screen, (255, 255, 255), (p1[1]*10+280+5, p1[0]*10+5 + 30), (p2[1]*10+280+5, p2[0]*10+5 + 30), 1)
             
             # Global prediction
+            text_surface = font.render('Baseline Average', False, (0, 0, 0))
+            screen.blit(text_surface, (560, 0))
             p_square = average_prediction.reshape(28, 28).T
             for i in range(len(p_square)):
                 for j in range(len(p_square[0])):
                     colour = p_square[i][j]*255
-                    pygame.draw.rect(screen, (colour, colour, colour), (i*10+840, j*10, 10, 10))
+                    pygame.draw.rect(screen, (colour, colour, colour), (i*10+560, j*10 + 30, 10, 10))
+            
+            # Global prediction
+            text_surface = font.render('Autoencoder Average', False, (0, 0, 0))
+            screen.blit(text_surface, (840, 0))
+            p_square = average_prediction2.reshape(28, 28).T
+            for i in range(len(p_square)):
+                for j in range(len(p_square[0])):
+                    colour = p_square[i][j]*255
+                    pygame.draw.rect(screen, (colour, colour, colour), (i*10+840, j*10 + 30, 10, 10))
 
             pygame.display.update()
     else:
