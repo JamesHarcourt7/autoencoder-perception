@@ -13,14 +13,6 @@ from load_mnist import load_data as load_mnist
 
 from dynamicagent import DynamicAgent2 as Agent
 
-
-'''
-Multiple agents
-- Environment will change after 100 steps
-- Agents will have to learn to adapt to the new environment
-- Agents will need confidence map instead of mask
-'''
-
 agent_colours = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 0), (255, 0, 255), (0, 255, 255), (255, 255, 255)]
 communication_radius = 3
 
@@ -485,6 +477,8 @@ if __name__ == '__main__':
 '''
 
 if __name__ == '__main__':
+    # example usage
+    # python maenvironment.py
     (X_train, y_train), (X_test, y_test) = load_mnist()
     label1 = 0
     label2 = 1

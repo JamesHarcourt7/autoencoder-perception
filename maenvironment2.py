@@ -1,10 +1,7 @@
-# Dynamic environment
-
 import numpy as np
 import pygame
 import os
 from utils import normalization
-from keras.datasets import mnist
 import keras
 import csv
 from skimage.metrics import structural_similarity as ssim
@@ -405,6 +402,8 @@ if __name__ == "__main__":
 '''
 
 if __name__ == "__main__":
+    # example usage
+    # python maenvironment.py
     (X_train, y_train), (X_test, y_test) = load_mnist()
     start = time.time()
     for digit in range(10):

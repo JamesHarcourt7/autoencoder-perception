@@ -216,6 +216,10 @@ def main(steps, visualise, model='none', log_dir=None):
         plt.close('all')
 
 if __name__ == "__main__":
+    # example usage for visualisation:
+    # python maenvironment.py visualise mask
+    # otherwise:
+    # python maenvironment.py no-visualise mask <output_dir>
     visualise = False
     output_dir = None
     model = None
